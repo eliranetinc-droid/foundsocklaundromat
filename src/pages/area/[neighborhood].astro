@@ -1,0 +1,35 @@
+---
+import Layout from '../../components/Layout.astro';
+import LocationBlock from '../../components/LocationBlock.astro';
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import { generateBreadcrumbSchema } from '../../lib/schema';
+
+export async function getStaticPaths() {
+  const areas = await getCollection('areas');
+  return areas.map(a => ({ params: { neighborhood: a.data.slug }, props: { area: a } }));
+}
+
+interface Props { area: CollectionEntry<'areas'>; }
+const { area } = Astro.props;
+const { Content } = await render(area);
+
+const breadcrumbs = generateBreadcrumbSchema([
+  { name: 'Home', url: 'https://www.foundsocklaundromat.com/' },
+  { name: area.data.name, url: `https://www.foundsocklaundromat.com/area/${area.data.slug}` },
+]);
+---
+<Layout
+  title={`Laundromat near ${area.data.name} · The Found Sock`}
+  description={area.data.description}
+  extraSchemas={[breadcrumbs]}
+>
+  <article class="max-w-2xl mx-auto px-5 py-14 md:py-20">
+    <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">Nearby</p>
+    <h1 class="text-5xl font-bold tracking-tight mb-4 leading-tight">Laundromat near {area.data.name}.</h1>
+    <p class="text-lg opacity-70 mb-10">{area.data.description}</p>
+    <div class="prose prose-lg max-w-none">
+      <Content />
+    </div>
+  </article>
+  <LocationBlock />
+</Layout>
