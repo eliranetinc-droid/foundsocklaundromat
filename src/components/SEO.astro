@@ -1,0 +1,39 @@
+---
+import { generateLocalBusinessSchema } from '../lib/schema';
+import { getBusiness } from '../lib/business';
+
+export interface Props {
+  title: string;
+  description: string;
+  canonical?: string;
+  ogImage?: string;
+  noindex?: boolean;
+  extraSchemas?: object[];
+}
+
+const { title, description, canonical, ogImage, noindex, extraSchemas = [] } = Astro.props;
+const b = getBusiness();
+const fullTitle = title.includes(b.shortName) ? title : `${title} | ${b.shortName}`;
+const ogImg = ogImage ?? `${b.url}/photos/og/default.jpg`;
+const localBiz = generateLocalBusinessSchema();
+const schemas = [localBiz, ...extraSchemas];
+---
+<title>{fullTitle}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical ?? Astro.url.href} />
+{noindex && <meta name="robots" content="noindex" />}
+
+<meta property="og:title" content={fullTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:image" content={ogImg} />
+<meta property="og:type" content="website" />
+<meta property="og:url" content={Astro.url.href} />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={fullTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImg} />
+
+{schemas.map(schema => (
+  <script type="application/ld+json" set:html={JSON.stringify(schema)} />
+))}
