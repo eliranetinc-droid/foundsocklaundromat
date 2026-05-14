@@ -60,3 +60,16 @@ test('FAQ page emits FAQPage schema', async ({ page }) => {
   const hasFaq = scripts.some(s => JSON.parse(s)['@type'] === 'FAQPage');
   expect(hasFaq).toBe(true);
 });
+
+test('blog index lists posts', async ({ page }) => {
+  await page.goto('/blog');
+  await expect(page.locator('h1')).toContainText(/Laundry tips/i);
+  await expect(page.locator('a[href^="/blog/"]').first()).toBeVisible();
+});
+
+test('blog post page renders', async ({ page }) => {
+  await page.goto('/blog/welcome');
+  await expect(page.locator('h1')).toContainText(/rebuilt our website/i);
+  const ld = await page.locator('script[type="application/ld+json"]').allInnerTexts();
+  expect(ld.some(s => JSON.parse(s)['@type'] === 'Article')).toBe(true);
+});

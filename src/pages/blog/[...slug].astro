@@ -1,0 +1,50 @@
+---
+import Layout from '../../components/Layout.astro';
+import LocationBlock from '../../components/LocationBlock.astro';
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import { generateArticleSchema, generateBreadcrumbSchema } from '../../lib/schema';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', ({ data }) => !data.draft);
+  return posts.map(post => ({ params: { slug: post.slug ?? post.id }, props: { post } }));
+}
+
+interface Props { post: CollectionEntry<'blog'>; }
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+const slug = post.slug ?? post.id;
+const articleSchema = generateArticleSchema({
+  title: post.data.title,
+  description: post.data.description,
+  slug,
+  datePublished: post.data.publishedAt.toISOString().slice(0, 10),
+  author: 'The Found Sock Laundromat',
+  imageUrl: post.data.image,
+});
+const breadcrumbs = generateBreadcrumbSchema([
+  { name: 'Home', url: 'https://www.foundsocklaundromat.com/' },
+  { name: 'Blog', url: 'https://www.foundsocklaundromat.com/blog' },
+  { name: post.data.title, url: `https://www.foundsocklaundromat.com/blog/${slug}` },
+]);
+---
+<Layout
+  title={post.data.title}
+  description={post.data.description}
+  ogImage={post.data.image}
+  extraSchemas={[articleSchema, breadcrumbs]}
+>
+  <article class="max-w-2xl mx-auto px-5 py-14 md:py-20">
+    <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">
+      <a href="/blog" class="hover:underline">Blog</a>
+    </p>
+    <h1 class="text-5xl font-bold tracking-tight mb-3 leading-tight">{post.data.title}</h1>
+    <time class="text-sm opacity-55">
+      {post.data.publishedAt.toLocaleDateString('en-US', { dateStyle: 'long' })}
+    </time>
+    <div class="prose prose-lg mt-10 text-brand-blue-darker max-w-none">
+      <Content />
+    </div>
+  </article>
+  <LocationBlock />
+</Layout>

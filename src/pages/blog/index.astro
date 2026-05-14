@@ -1,0 +1,36 @@
+---
+import Layout from '../../components/Layout.astro';
+import LocationBlock from '../../components/LocationBlock.astro';
+import { getCollection } from 'astro:content';
+import { generateBreadcrumbSchema } from '../../lib/schema';
+
+const posts = (await getCollection('blog', ({ data }) => !data.draft))
+  .sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime());
+
+const breadcrumbs = generateBreadcrumbSchema([
+  { name: 'Home', url: 'https://www.foundsocklaundromat.com/' },
+  { name: 'Blog', url: 'https://www.foundsocklaundromat.com/blog' },
+]);
+---
+<Layout
+  title="Laundry Tips & News · The Found Sock Laundromat Blog"
+  description="Practical laundry guides written by a Brighton laundromat. How to wash specific items, what to bring, and tips for getting the best results."
+  extraSchemas={[breadcrumbs]}
+>
+  <section class="max-w-2xl mx-auto px-5 py-14 md:py-20">
+    <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">Blog</p>
+    <h1 class="text-5xl font-bold tracking-tight mb-10 leading-tight">Laundry tips<br/>& neighborhood news.</h1>
+    <div class="space-y-7">
+      {posts.map(post => (
+        <a href={`/blog/${post.slug ?? post.id}`} class="block bg-cream rounded-2xl p-7 hover:bg-line transition-colors">
+          <time class="text-xs uppercase tracking-[0.15em] opacity-50 font-semibold">
+            {post.data.publishedAt.toLocaleDateString('en-US', { dateStyle: 'medium' })}
+          </time>
+          <h2 class="text-xl font-bold mt-1 mb-2 leading-snug">{post.data.title}</h2>
+          <p class="text-sm opacity-65 leading-relaxed">{post.data.description}</p>
+        </a>
+      ))}
+    </div>
+  </section>
+  <LocationBlock />
+</Layout>
