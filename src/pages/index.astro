@@ -1,8 +1,32 @@
 ---
 import Layout from '../components/Layout.astro';
+import Hero from '../components/Hero.astro';
+import WhyUs from '../components/WhyUs.astro';
+import PhotoStrip from '../components/PhotoStrip.astro';
+import PriceTable from '../components/PriceTable.astro';
+import ReviewsBlock from '../components/ReviewsBlock.astro';
+import LocationBlock from '../components/LocationBlock.astro';
+import { generateBreadcrumbSchema } from '../lib/schema';
+
+const breadcrumbs = generateBreadcrumbSchema([
+  { name: 'Home', url: 'https://www.foundsocklaundromat.com/' },
+]);
 ---
-<Layout title="The Found Sock Laundromat" description="Brighton's cleanest self-service laundromat.">
-  <div class="p-8">
-    <h1 class="text-5xl font-bold">Layout works.</h1>
-  </div>
+<Layout
+  title="Laundromat in Brighton, MA · Open 6am–11pm Daily"
+  description="Brighton's cleanest self-service laundromat. Brand-new card-operated machines, no quarters, free Wi-Fi. Start machines from your phone. 76 Washington St, Brighton MA — open 7 days."
+  extraSchemas={[breadcrumbs]}
+>
+  <Hero />
+  <WhyUs />
+  <PhotoStrip />
+
+  <section class="max-w-3xl mx-auto px-5 py-14">
+    <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">Transparent pricing</p>
+    <h2 class="text-4xl font-bold tracking-tight mb-6 leading-tight">From $6<br/>per wash<span class="inline-block w-2.5 h-2.5 bg-brand-red rounded-full ml-1 -translate-y-1"></span></h2>
+    <PriceTable teaser={true} />
+  </section>
+
+  <ReviewsBlock />
+  <LocationBlock />
 </Layout>
