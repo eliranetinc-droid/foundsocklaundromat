@@ -38,4 +38,17 @@ describe('getOpenStatus', () => {
     const status = getOpenStatus(new Date('2026-05-20T03:00:00Z'));
     expect(status.isOpen).toBe(false);
   });
+
+  test('handles EST winter correctly (DST regression guard)', () => {
+    // January 15, 2026 12:00 EST = 17:00 UTC (EST is UTC-5 in winter)
+    const status = getOpenStatus(new Date('2026-01-15T17:00:00Z'));
+    expect(status.isOpen).toBe(true);
+    expect(status.label).toBe('Open now');
+  });
+
+  test('handles EST winter early-morning correctly', () => {
+    // January 15, 2026 04:00 EST = 09:00 UTC (before opening)
+    const status = getOpenStatus(new Date('2026-01-15T09:00:00Z'));
+    expect(status.isOpen).toBe(false);
+  });
 });
