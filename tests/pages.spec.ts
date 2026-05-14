@@ -39,3 +39,24 @@ test('visit page has hours and address', async ({ page }) => {
   await expect(page).toHaveTitle(/76 Washington/);
   await expect(page.locator('text=Daily 6 AM – 11 PM')).toBeVisible();
 });
+
+for (const path of ['/about', '/loyalty', '/app', '/gallery', '/faq']) {
+  test(`${path} renders without errors`, async ({ page }) => {
+    const errors: string[] = [];
+    page.on('console', msg => {
+      if (msg.type() === 'error' && !msg.text().includes('Failed to load resource')) {
+        errors.push(msg.text());
+      }
+    });
+    await page.goto(path);
+    await expect(page.locator('h1')).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+}
+
+test('FAQ page emits FAQPage schema', async ({ page }) => {
+  await page.goto('/faq');
+  const scripts = await page.locator('script[type="application/ld+json"]').allInnerTexts();
+  const hasFaq = scripts.some(s => JSON.parse(s)['@type'] === 'FAQPage');
+  expect(hasFaq).toBe(true);
+});

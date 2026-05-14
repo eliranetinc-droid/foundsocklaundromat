@@ -1,0 +1,27 @@
+---
+import Layout from '../components/Layout.astro';
+import LocationBlock from '../components/LocationBlock.astro';
+import { generateBreadcrumbSchema } from '../lib/schema';
+
+const breadcrumbs = generateBreadcrumbSchema([
+  { name: 'Home', url: 'https://www.foundsocklaundromat.com/' },
+  { name: 'About', url: 'https://www.foundsocklaundromat.com/about' },
+]);
+---
+<Layout
+  title="About The Found Sock Laundromat — Locally Owned, Brighton MA"
+  description="A locally owned, family-run laundromat in Brighton, MA. Brand-new machines, daily cleaning, modern payment, and a friendly neighborhood feel."
+  extraSchemas={[breadcrumbs]}
+>
+  <section class="max-w-2xl mx-auto px-5 py-16 md:py-24">
+    <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">About us</p>
+    <h1 class="text-5xl font-bold tracking-tight mb-6 leading-tight">A laundromat that<br/>actually feels clean.</h1>
+    <div class="prose prose-lg text-brand-blue-darker space-y-5 text-base leading-relaxed opacity-85">
+      <p>The Found Sock Laundromat is a locally owned, self-service laundry in Brighton, MA. We've been here since 2015.</p>
+      <p>We built this place around three things that matter to people doing laundry: <strong>clean machines, modern payment, and zero hassle.</strong></p>
+      <p>That's why our floors are spotless, why every washer and dryer is brand new, why you can pay with your phone or load a loyalty card with cash, and why we don't make you stand around watching a wash — the FasCard app lets you start machines from your couch and get notified when they're done.</p>
+      <p>Stop by. We think you'll feel the difference.</p>
+    </div>
+  </section>
+  <LocationBlock />
+</Layout>

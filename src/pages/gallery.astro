@@ -1,0 +1,34 @@
+---
+import Layout from '../components/Layout.astro';
+import LocationBlock from '../components/LocationBlock.astro';
+import { generateBreadcrumbSchema } from '../lib/schema';
+
+const breadcrumbs = generateBreadcrumbSchema([
+  { name: 'Home', url: 'https://www.foundsocklaundromat.com/' },
+  { name: 'Gallery', url: 'https://www.foundsocklaundromat.com/gallery' },
+]);
+
+// 12 slots — owner drops photos here. Falls back to brand-tinted blocks.
+const photos = Array.from({ length: 12 }, (_, i) => ({
+  src: `/photos/gallery/${String(i + 1).padStart(2, '0')}.jpg`,
+  alt: `Inside The Found Sock Laundromat ${i + 1}`,
+}));
+---
+<Layout
+  title="Photo Gallery · The Found Sock Laundromat, Brighton MA"
+  description="Photos of our facility — machines, seating, folding area, and the touchscreen kiosk. See for yourself what a spotless laundromat looks like."
+  extraSchemas={[breadcrumbs]}
+>
+  <section class="max-w-6xl mx-auto px-5 py-14 md:py-20">
+    <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">Gallery</p>
+    <h1 class="text-5xl font-bold tracking-tight mb-10 leading-tight">See for yourself.</h1>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+      {photos.map((p, i) => (
+        <div class="aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-blue-200 to-brand-blue">
+          <img src={p.src} alt={p.alt} loading={i < 3 ? 'eager' : 'lazy'} class="w-full h-full object-cover" onerror="this.style.display='none'" />
+        </div>
+      ))}
+    </div>
+  </section>
+  <LocationBlock />
+</Layout>

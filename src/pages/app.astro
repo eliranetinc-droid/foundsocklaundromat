@@ -1,0 +1,45 @@
+---
+import Layout from '../components/Layout.astro';
+import AppDownloadCard from '../components/AppDownloadCard.astro';
+import LocationBlock from '../components/LocationBlock.astro';
+import { generateBreadcrumbSchema } from '../lib/schema';
+
+const breadcrumbs = generateBreadcrumbSchema([
+  { name: 'Home', url: 'https://www.foundsocklaundromat.com/' },
+  { name: 'App', url: 'https://www.foundsocklaundromat.com/app' },
+]);
+
+const features = [
+  { t: 'Quick Start', b: "Scan the QR on the machine's card reader with your phone's camera. Tap. Done." },
+  { t: "See what's open", b: 'Check which washers and dryers are free in real time, before you walk in.' },
+  { t: 'Cycle notifications', b: "Push notification (or email, if you prefer) the second your wash or dry finishes." },
+  { t: 'Reload from anywhere', b: 'Top up your loyalty card from the app with any credit card — no need to go to the kiosk.' },
+  { t: 'Balance & history', b: 'See your card balance and every transaction, any time.' },
+];
+---
+<Layout
+  title="Start Your Laundry From Your Phone — FasCard App · Found Sock"
+  description="Free CCI/FasCard app: start any machine by scanning, see real-time availability, get push notifications when your laundry's done. iOS + Android."
+  extraSchemas={[breadcrumbs]}
+>
+  <section class="max-w-2xl mx-auto px-5 py-16 md:py-24">
+    <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">Our App</p>
+    <h1 class="text-5xl font-bold tracking-tight mb-6 leading-tight">Start your laundry<br/>from your phone.</h1>
+    <p class="text-lg opacity-70 max-w-xl mb-10">The free FasCard app by Card Concepts Inc. — works at Found Sock and thousands of laundromats nationwide.</p>
+
+    <div class="space-y-7 mb-12">
+      {features.map(f => (
+        <div class="flex gap-4 items-start">
+          <span class="w-2 h-2 rounded-full bg-brand-red mt-3 flex-shrink-0"></span>
+          <div>
+            <h2 class="text-lg font-bold mb-1">{f.t}</h2>
+            <p class="text-sm opacity-65 leading-relaxed">{f.b}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <AppDownloadCard />
+  </section>
+  <LocationBlock />
+</Layout>

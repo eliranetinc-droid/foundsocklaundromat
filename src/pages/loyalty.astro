@@ -1,0 +1,47 @@
+---
+import Layout from '../components/Layout.astro';
+import AppDownloadCard from '../components/AppDownloadCard.astro';
+import LocationBlock from '../components/LocationBlock.astro';
+import { getPricing } from '../lib/business';
+import { generateBreadcrumbSchema } from '../lib/schema';
+
+const { loyalty } = getPricing();
+const breadcrumbs = generateBreadcrumbSchema([
+  { name: 'Home', url: 'https://www.foundsocklaundromat.com/' },
+  { name: 'Loyalty', url: 'https://www.foundsocklaundromat.com/loyalty' },
+]);
+---
+<Layout
+  title="Loyalty Card — 10% Cashback Forever · Found Sock"
+  description="Get 10% cashback on every wash, forever. Pay $1.50 once for the card. Load with cash or credit. Never expires. Reloadable from our touchscreen kiosk or the FasCard app."
+  extraSchemas={[breadcrumbs]}
+>
+  <section class="max-w-2xl mx-auto px-5 py-16 md:py-24">
+    <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">Loyalty</p>
+    <h1 class="text-5xl font-bold tracking-tight mb-6 leading-tight">10% cashback,<br/>forever.</h1>
+    <p class="text-lg opacity-70 max-w-xl mb-10">A simple way to save and a way to use cash. The card costs ${loyalty.cardFee.toFixed(2)} once — that's it.</p>
+
+    <ol class="space-y-6">
+      {[
+        { n: 1, t: 'Buy the card at the kiosk', b: `One-time fee: $${loyalty.cardFee.toFixed(2)}. Keep it forever, reload it anytime.` },
+        { n: 2, t: 'Load any amount, any way', b: `Load with cash or credit at the touchscreen kiosk, or with your credit card from the FasCard app. Minimum: $${loyalty.minLoad.toFixed(2)}. No max.` },
+        { n: 3, t: 'Tap to pay at any machine', b: `Card reader on every washer and dryer. Or use the app to start the machine from your phone.` },
+        { n: 4, t: `Earn ${loyalty.cashbackPercent}% back automatically`, b: `Cashback is credited to your loyalty balance after each wash.` },
+        { n: 5, t: 'Never expires', b: `Your balance and the card itself never expire. Use them on your schedule.` },
+      ].map(step => (
+        <li class="flex gap-5">
+          <span class="text-3xl font-bold text-brand-red/40 flex-shrink-0 tabular-nums">{String(step.n).padStart(2, '0')}</span>
+          <div>
+            <h2 class="text-lg font-bold mb-1">{step.t}</h2>
+            <p class="text-sm opacity-65 leading-relaxed">{step.b}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+
+    <div class="mt-14">
+      <AppDownloadCard />
+    </div>
+  </section>
+  <LocationBlock />
+</Layout>

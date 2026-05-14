@@ -1,0 +1,42 @@
+[
+  {
+    "q": "Do you accept cash?",
+    "a": "Yes, indirectly. We don't take cash directly at the machines, but you can load cash onto a loyalty card at our touchscreen kiosk in the store. Starting from $1, any amount works. The card costs $1.50 one-time, never expires, and earns 10% cashback on every wash."
+  },
+  {
+    "q": "Do I need quarters?",
+    "a": "No. We're a fully card-operated laundromat. Pay with any credit card, Apple Pay, Google Pay, or a loyalty card."
+  },
+  {
+    "q": "What are your hours?",
+    "a": "We're open every day from 6 AM to 11 PM, including holidays."
+  },
+  {
+    "q": "Can I start a machine from my phone?",
+    "a": "Yes — download the free FasCard app (iOS or Android). You can scan the code on any machine to start it remotely, see which washers and dryers are open in real time, and get a push notification when your cycle is done."
+  },
+  {
+    "q": "Do you sell detergent?",
+    "a": "Yes. Single-load detergent packs and dryer sheets are available at the kiosk."
+  },
+  {
+    "q": "Do you have free Wi-Fi?",
+    "a": "Yes — free Wi-Fi for all customers. We also have a TV, comfortable seating, and folding tables."
+  },
+  {
+    "q": "Where do I park?",
+    "a": "Street parking is available right out front on Washington Street. It's free with a 2-hour limit, which is more than enough for most loads."
+  },
+  {
+    "q": "Are kids allowed?",
+    "a": "Of course — kids are welcome. We're a family-friendly business and most customers come on weekends with the whole family."
+  },
+  {
+    "q": "What size washer should I use?",
+    "a": "20 lb washers handle 1–2 loads of regular clothes. 30 lb fits 3 loads or a small comforter. 45 lb is the right size for a king-size comforter or 4+ loads."
+  },
+  {
+    "q": "Are you open on Christmas / Thanksgiving / holidays?",
+    "a": "Yes — we're open every day of the year, 6 AM to 11 PM."
+  }
+]
