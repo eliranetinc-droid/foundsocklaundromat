@@ -9,7 +9,7 @@ const b = getBusiness();
     </div>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-7 text-sm">
       <div>
-        <h4 class="text-xs uppercase tracking-widest opacity-55 font-semibold mb-3">Visit</h4>
+        <h3 class="text-xs uppercase tracking-widest opacity-55 font-semibold mb-3">Visit</h3>
         <p class="opacity-75 leading-relaxed">
           {b.address.streetAddress}<br/>
           {b.address.addressLocality}, {b.address.addressRegion} {b.address.postalCode}<br/>
@@ -17,7 +17,7 @@ const b = getBusiness();
         </p>
       </div>
       <div>
-        <h4 class="text-xs uppercase tracking-widest opacity-55 font-semibold mb-3">Services</h4>
+        <h3 class="text-xs uppercase tracking-widest opacity-55 font-semibold mb-3">Services</h3>
         <ul class="space-y-2 opacity-75">
           <li><a href="/pricing">Pricing</a></li>
           <li><a href="/loyalty">Loyalty</a></li>
@@ -26,7 +26,7 @@ const b = getBusiness();
         </ul>
       </div>
       <div>
-        <h4 class="text-xs uppercase tracking-widest opacity-55 font-semibold mb-3">Help</h4>
+        <h3 class="text-xs uppercase tracking-widest opacity-55 font-semibold mb-3">Help</h3>
         <ul class="space-y-2 opacity-75">
           <li><a href="/faq">FAQ</a></li>
           <li><a href="/contact">Contact</a></li>
@@ -34,14 +34,14 @@ const b = getBusiness();
         </ul>
       </div>
       <div>
-        <h4 class="text-xs uppercase tracking-widest opacity-55 font-semibold mb-3">Read</h4>
+        <h3 class="text-xs uppercase tracking-widest opacity-55 font-semibold mb-3">Read</h3>
         <ul class="space-y-2 opacity-75">
           <li><a href="/about">About</a></li>
           <li><a href="/blog">Blog</a></li>
         </ul>
       </div>
     </div>
-    <p class="text-xs opacity-45 mt-10 pt-6 border-t border-white/10">
+    <p class="text-xs opacity-55 mt-10 pt-6 border-t border-white/10">
       © 2015–2026 {b.name}. Self-service laundromat in {b.address.addressLocality}, {b.address.addressRegion}.
     </p>
   </div>

@@ -23,7 +23,7 @@ const breadcrumbs = generateBreadcrumbSchema([
     <div class="space-y-7">
       {posts.map(post => (
         <a href={`/blog/${post.slug ?? post.id}`} class="block bg-cream rounded-2xl p-7 hover:bg-line transition-colors">
-          <time class="text-xs uppercase tracking-[0.15em] opacity-50 font-semibold">
+          <time class="text-xs uppercase tracking-[0.15em] opacity-70 font-semibold">
             {post.data.publishedAt.toLocaleDateString('en-US', { dateStyle: 'medium' })}
           </time>
           <h2 class="text-xl font-bold mt-1 mb-2 leading-snug">{post.data.title}</h2>

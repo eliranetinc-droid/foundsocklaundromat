@@ -1,7 +1,7 @@
 module.exports = {
   ci: {
     collect: {
-      staticDistDir: './dist',
+      staticDistDir: './dist/client',
       url: [
         'http://localhost/index.html',
         'http://localhost/pricing/index.html',
