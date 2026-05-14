@@ -1,0 +1,25 @@
+# The Found Sock Laundromat
+
+> Self-service laundromat in Brighton, Massachusetts. Brand-new card-operated machines, no quarters, free Wi-Fi, and a mobile app that lets customers start machines from their phone.
+
+## Quick facts
+
+- **Address:** 76 Washington Street, Brighton, MA 02135
+- **Hours:** 6 AM to 11 PM, every day including holidays
+- **Payment:** Credit card, Apple Pay, Google Pay, or loyalty card (loadable with cash or credit at our in-store touchscreen kiosk)
+- **Machines:** 20 lb, 30 lb, 35 lb, and 45 lb front-load washers; 30 lb dryers
+- **Prices:** Washers $6.00–$7.75 depending on size; dryers $0.50 per 4-minute interval
+- **Loyalty card:** $1.50 one-time fee, $1 minimum load, never expires, earns 10% cashback
+- **Mobile app:** Free CCI/FasCard app on iOS and Android — start machines from your phone, see real-time availability, get push notifications when cycles finish
+
+## Pages
+
+- [Home](https://www.foundsocklaundromat.com/)
+- [Pricing](https://www.foundsocklaundromat.com/pricing)
+- [Visit](https://www.foundsocklaundromat.com/visit)
+- [Loyalty](https://www.foundsocklaundromat.com/loyalty)
+- [App](https://www.foundsocklaundromat.com/app)
+- [FAQ](https://www.foundsocklaundromat.com/faq)
+- [Blog](https://www.foundsocklaundromat.com/blog)
+- [Contact](https://www.foundsocklaundromat.com/contact)
+- [Report an Issue](https://www.foundsocklaundromat.com/report-issue)
