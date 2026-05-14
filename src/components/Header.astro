@@ -1,0 +1,34 @@
+---
+const navItems = [
+  { href: '/visit', label: 'Visit' },
+  { href: '/pricing', label: 'Pricing' },
+  { href: '/loyalty', label: 'Loyalty' },
+  { href: '/app', label: 'App' },
+  { href: '/faq', label: 'FAQ' },
+];
+---
+<header class="border-b border-line">
+  <div class="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between">
+    <a href="/" class="flex items-center" aria-label="Found Sock home">
+      <img src="/brand/logo-horizontal.png" alt="The Found Sock Laundromat" width="160" height="29" />
+    </a>
+    <nav class="hidden md:flex gap-7 text-sm font-medium">
+      {navItems.map(item => (
+        <a href={item.href} class="text-brand-blue-darker hover:text-brand-red transition-colors">{item.label}</a>
+      ))}
+    </nav>
+    <button class="md:hidden p-2 border border-line rounded-lg" aria-label="Menu" id="mobile-menu-toggle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+  </div>
+  <nav id="mobile-menu" class="hidden md:hidden border-t border-line">
+    {navItems.map(item => (
+      <a href={item.href} class="block px-5 py-3 border-b border-line text-brand-blue-darker">{item.label}</a>
+    ))}
+  </nav>
+</header>
+<script>
+  const toggle = document.getElementById('mobile-menu-toggle');
+  const menu = document.getElementById('mobile-menu');
+  toggle?.addEventListener('click', () => menu?.classList.toggle('hidden'));
+</script>
