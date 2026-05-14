@@ -1,0 +1,24 @@
+---
+import Layout from '../components/Layout.astro';
+import LocationBlock from '../components/LocationBlock.astro';
+---
+<Layout
+  title="Page not found · The Found Sock"
+  description="That page doesn't exist. But these do."
+  noindex={true}
+>
+  <section class="max-w-2xl mx-auto px-5 py-20 md:py-28 text-center">
+    <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">404</p>
+    <h1 class="text-6xl md:text-7xl font-bold tracking-tight mb-5 leading-tight">
+      Looks like<br/>a <em class="font-serif text-brand-red italic font-normal">lost sock</em>.
+    </h1>
+    <p class="text-lg opacity-70 mb-10">That page doesn't exist. Try these instead:</p>
+    <div class="flex flex-wrap gap-3 justify-center">
+      <a href="/" class="bg-brand-red text-white font-bold text-sm px-6 py-3.5 rounded-full">Home →</a>
+      <a href="/pricing" class="border-2 border-brand-blue-darker text-brand-blue-darker font-semibold text-sm px-6 py-3.5 rounded-full">Pricing</a>
+      <a href="/visit" class="border-2 border-brand-blue-darker text-brand-blue-darker font-semibold text-sm px-6 py-3.5 rounded-full">Visit</a>
+      <a href="/blog" class="border-2 border-brand-blue-darker text-brand-blue-darker font-semibold text-sm px-6 py-3.5 rounded-full">Blog</a>
+    </div>
+  </section>
+  <LocationBlock />
+</Layout>
