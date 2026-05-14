@@ -25,3 +25,11 @@ test('no console errors on homepage', async ({ page }) => {
   await page.waitForLoadState('networkidle');
   expect(errors).toEqual([]);
 });
+
+test('pricing page renders prices', async ({ page }) => {
+  await page.goto('/pricing');
+  await expect(page).toHaveTitle(/Laundromat Prices in Brighton/);
+  await expect(page.locator('text=$6.00')).toBeVisible();
+  await expect(page.locator('text=$7.75')).toBeVisible();
+  await expect(page.locator('text=$0.50')).toBeVisible();
+});

@@ -1,0 +1,42 @@
+---
+import Layout from '../components/Layout.astro';
+import PriceTable from '../components/PriceTable.astro';
+import LocationBlock from '../components/LocationBlock.astro';
+import { getPricing } from '../lib/business';
+import { generateBreadcrumbSchema } from '../lib/schema';
+
+const pricing = getPricing();
+const breadcrumbs = generateBreadcrumbSchema([
+  { name: 'Home', url: 'https://www.foundsocklaundromat.com/' },
+  { name: 'Pricing', url: 'https://www.foundsocklaundromat.com/pricing' },
+]);
+---
+<Layout
+  title="Laundromat Prices in Brighton, MA — From $6 a Wash"
+  description="Transparent pricing for self-service washers ($6.00–$7.75) and dryers ($0.50/4min). Card, Apple Pay, and loyalty card accepted. No coins required."
+  extraSchemas={[breadcrumbs]}
+>
+  <section class="max-w-3xl mx-auto px-5 py-14 md:py-20">
+    <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">Pricing</p>
+    <h1 class="text-5xl font-bold tracking-tight mb-3 leading-tight">From $6 a wash.</h1>
+    <p class="text-lg opacity-70 mb-10 max-w-xl">Pay by card, Apple Pay, Google Pay, or load cash onto a loyalty card at our touchscreen kiosk.</p>
+
+    <h2 class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-4">Washers</h2>
+    <PriceTable />
+
+    <div class="mt-12 bg-cream rounded-2xl p-7">
+      <h2 class="text-xl font-bold mb-3">Loyalty card</h2>
+      <p class="text-sm opacity-75 leading-relaxed mb-3">
+        Pay a one-time <strong>${pricing.loyalty.cardFee.toFixed(2)}</strong> for the physical card. Load it with <strong>any amount from ${pricing.loyalty.minLoad.toFixed(2)}</strong> at the kiosk (cash or credit) or from the mobile app. Earn <strong>{pricing.loyalty.cashbackPercent}% cashback</strong> on every wash. The card <strong>never expires</strong>.
+      </p>
+      <a href="/loyalty" class="text-xs font-bold text-brand-red border-b-2 border-brand-red pb-0.5">How loyalty works →</a>
+    </div>
+
+    <div class="mt-8 bg-cream rounded-2xl p-7">
+      <h2 class="text-xl font-bold mb-3">Mobile app</h2>
+      <p class="text-sm opacity-75 leading-relaxed mb-3">Start machines from your phone, see open washers in real time, get notified when your cycle's done.</p>
+      <a href="/app" class="text-xs font-bold text-brand-red border-b-2 border-brand-red pb-0.5">Download the app →</a>
+    </div>
+  </section>
+  <LocationBlock />
+</Layout>
