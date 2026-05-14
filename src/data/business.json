@@ -1,0 +1,32 @@
+{
+  "name": "The Found Sock Laundromat",
+  "shortName": "Found Sock",
+  "tagline": "Brighton's cleanest laundromat.",
+  "description": "Brighton's friendliest self-service laundromat. Brand-new card-operated machines, no quarters, free Wi-Fi, plenty of family-size washers, and a mobile app that lets you start machines from your phone.",
+  "address": {
+    "streetAddress": "76 Washington Street",
+    "addressLocality": "Brighton",
+    "addressRegion": "MA",
+    "postalCode": "02135",
+    "addressCountry": "US"
+  },
+  "geo": { "latitude": 42.3528, "longitude": -71.1448 },
+  "hours": {
+    "open": "06:00",
+    "close": "23:00",
+    "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+  },
+  "phone": null,
+  "email": "support@foundsocklaundromat.com",
+  "paymentAccepted": [
+    "Credit Card",
+    "Apple Pay",
+    "Google Pay",
+    "Loyalty Card (load with cash or credit at the kiosk)"
+  ],
+  "social": {
+    "googleBusinessUrl": null
+  },
+  "googlePlaceId": null,
+  "url": "https://www.foundsocklaundromat.com"
+}

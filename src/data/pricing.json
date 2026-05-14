@@ -1,0 +1,19 @@
+{
+  "washers": [
+    { "size": "20 lb", "brand": "Wascomat", "price": 6.00 },
+    { "size": "30 lb", "brand": "LG", "price": 6.25 },
+    { "size": "35 lb", "brand": "LG", "price": 6.50 },
+    { "size": "45 lb", "brand": "Electrolux", "price": 7.75 }
+  ],
+  "dryers": [
+    { "size": "30 lb", "brand": "Wascomat", "pricePerInterval": 0.50, "intervalMinutes": 4 }
+  ],
+  "loyalty": {
+    "cardFee": 1.50,
+    "minLoad": 1.00,
+    "maxLoad": null,
+    "cashbackPercent": 10,
+    "expires": false
+  },
+  "currency": "USD"
+}
