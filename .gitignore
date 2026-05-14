@@ -35,3 +35,4 @@ brand-assets/
 
 # Claude Code local settings
 .claude/
+test-results/
