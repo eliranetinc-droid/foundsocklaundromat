@@ -1,0 +1,26 @@
+---
+import reviews from '../data/reviews.json';
+type Review = { author: string; rating: number; text: string; relativeTime: string };
+const r: { rating: number; count: number; reviews: Review[] } = reviews;
+const featured = r.reviews.slice(0, 2);
+---
+<section class="bg-cream border-y border-line">
+  <div class="max-w-3xl mx-auto px-5 py-12">
+    <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">What customers say</p>
+    <div class="flex items-baseline gap-3 mb-5">
+      <span class="text-4xl font-bold text-brand-blue-darker tabular-nums leading-none">{r.rating.toFixed(1)}</span>
+      <div class="text-xs">
+        <div class="text-brand-red text-base leading-none">★★★★★</div>
+        <div class="opacity-75 mt-1">{r.count} Google reviews</div>
+      </div>
+    </div>
+    <div class="space-y-2">
+      {featured.map(rv => (
+        <div class="bg-white border border-line rounded-xl p-4">
+          <p class="text-sm leading-relaxed">"{rv.text}"</p>
+          <p class="text-xs opacity-55 mt-2.5">— {rv.author} · {rv.relativeTime}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

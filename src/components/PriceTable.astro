@@ -1,0 +1,21 @@
+---
+import { getPricing } from '../lib/business';
+const { washers, dryers } = getPricing();
+const teaser = Astro.props.teaser ?? false;
+const items = teaser ? washers.slice(0, 3) : washers;
+---
+<div class="space-y-3">
+  {items.map(w => (
+    <div class="flex justify-between items-baseline py-3 border-b border-line last:border-0 text-sm">
+      <span class="opacity-65">{w.size} washer <span class="opacity-50 text-xs">· {w.brand}</span></span>
+      <span class="font-bold tabular-nums text-brand-blue-darker">${w.price.toFixed(2)}</span>
+    </div>
+  ))}
+  {!teaser && dryers.map(d => (
+    <div class="flex justify-between items-baseline py-3 border-b border-line last:border-0 text-sm">
+      <span class="opacity-65">Dryer · {d.size} <span class="opacity-50 text-xs">· {d.brand}</span></span>
+      <span class="font-bold tabular-nums text-brand-blue-darker">${d.pricePerInterval.toFixed(2)} / {d.intervalMinutes} min</span>
+    </div>
+  ))}
+</div>
+{teaser && <a href="/pricing" class="inline-flex items-center gap-1.5 mt-4 text-xs font-bold text-brand-red border-b-2 border-brand-red pb-0.5">See full pricing →</a>}

@@ -1,0 +1,21 @@
+---
+const links = {
+  ios: 'https://apps.apple.com/us/app/fascard/id971906763',
+  android: 'https://play.google.com/store/apps/details?id=com.fascard.mobile',
+};
+---
+<div class="bg-brand-blue-darker text-white rounded-2xl p-7 md:p-10">
+  <p class="text-xs uppercase tracking-[0.25em] opacity-70 font-bold mb-3 text-brand-red-soft">CCI / FasCard app</p>
+  <h2 class="text-3xl font-bold mb-3 leading-tight">Start your laundry<br/>from your phone.</h2>
+  <p class="opacity-80 mb-6 max-w-md leading-relaxed">Free app from Card Concepts Inc. See open machines, start a cycle by scanning the code, and get a push notification when it's done.</p>
+  <div class="flex flex-wrap gap-3">
+    <a href={links.ios} class="bg-white text-brand-blue-darker font-bold text-sm px-6 py-3 rounded-full inline-flex items-center gap-2">
+      <svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M16.36 12.61c-.02-2.31 1.89-3.42 1.97-3.47-1.07-1.56-2.74-1.78-3.34-1.8-1.42-.14-2.77.84-3.49.84-.72 0-1.83-.82-3.01-.8-1.55.02-2.97.9-3.77 2.29-1.61 2.79-.41 6.93 1.16 9.2.77 1.11 1.68 2.36 2.87 2.32 1.15-.05 1.59-.74 2.98-.74 1.39 0 1.79.74 3 .71 1.24-.02 2.02-1.14 2.78-2.26.87-1.29 1.23-2.55 1.25-2.61-.03-.01-2.39-.92-2.41-3.65zM14.3 5.84c.63-.77 1.06-1.84.94-2.91-.91.04-2.01.61-2.66 1.38-.59.68-1.1 1.76-.96 2.81 1.01.08 2.05-.51 2.68-1.28z"/></svg>
+      App Store
+    </a>
+    <a href={links.android} class="bg-white text-brand-blue-darker font-bold text-sm px-6 py-3 rounded-full inline-flex items-center gap-2">
+      <svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M3.6 1.45a.5.5 0 0 0-.6.49v20.12a.5.5 0 0 0 .6.49l13.16-9.81a.93.93 0 0 0 0-1.5L3.6 1.45zm14.5 8.4l2.39 1.41a.94.94 0 0 1 0 1.5l-2.39 1.41-3.06-2.16 3.06-2.16zm-2.34 4.46-3 2.13L4.62 22.5l11.14-8.19zm-11.14-12 8.14 5.95 3 2.13L4.62 1.5z"/></svg>
+      Google Play
+    </a>
+  </div>
+</div>

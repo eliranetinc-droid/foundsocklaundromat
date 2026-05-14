@@ -1,0 +1,21 @@
+---
+import { getBusiness, formatAddress } from '../lib/business';
+const b = getBusiness();
+const mapEmbedUrl = `https://www.google.com/maps/embed/v1/place?key=&q=${encodeURIComponent(formatAddress(b))}`;
+const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(formatAddress(b))}`;
+---
+<section class="bg-[#f4f1ea]">
+  <div class="max-w-3xl mx-auto px-5 py-12">
+    <div class="rounded-xl overflow-hidden h-48 md:h-64 mb-5 bg-[#c8d3bd]">
+      <iframe src={mapEmbedUrl} class="w-full h-full" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Map showing Found Sock Laundromat"></iframe>
+    </div>
+    <h2 class="text-3xl font-bold tracking-tight mb-2">Find us in Brighton.</h2>
+    <p class="opacity-70 mb-5 leading-relaxed">
+      {b.address.streetAddress} · {b.address.addressLocality}, {b.address.addressRegion} {b.address.postalCode}<br/>
+      Open daily, 6 AM – 11 PM
+    </p>
+    <a href={directionsUrl} class="inline-flex items-center gap-2 bg-brand-red text-white text-sm font-bold px-6 py-3 rounded-full shadow-[0_4px_14px_rgba(200,0,20,0.35)]">
+      Open in Maps →
+    </a>
+  </div>
+</section>
