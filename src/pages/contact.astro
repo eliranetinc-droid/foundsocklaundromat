@@ -1,0 +1,24 @@
+---
+import Layout from '../components/Layout.astro';
+import ContactForm from '../components/ContactForm.astro';
+import LocationBlock from '../components/LocationBlock.astro';
+import { generateBreadcrumbSchema } from '../lib/schema';
+
+const breadcrumbs = generateBreadcrumbSchema([
+  { name: 'Home', url: 'https://www.foundsocklaundromat.com/' },
+  { name: 'Contact', url: 'https://www.foundsocklaundromat.com/contact' },
+]);
+---
+<Layout
+  title="Contact The Found Sock Laundromat · Brighton MA"
+  description="Questions about hours, pricing, the app, or the loyalty card? Send us a message — we usually reply within a few hours."
+  extraSchemas={[breadcrumbs]}
+>
+  <section class="max-w-2xl mx-auto px-5 py-14 md:py-20">
+    <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">Contact us</p>
+    <h1 class="text-5xl font-bold tracking-tight mb-3 leading-tight">Get in touch.</h1>
+    <p class="text-lg opacity-70 mb-10 max-w-xl">If something's wrong with a machine, use <a href="/report-issue" class="text-brand-red underline">Report an Issue</a> instead — we'll get to it faster.</p>
+    <ContactForm kind="general" />
+  </section>
+  <LocationBlock />
+</Layout>

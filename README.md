@@ -22,3 +22,15 @@ Marketing website for The Found Sock Laundromat in Brighton, MA.
 ## Single source of truth
 `src/data/business.json` contains NAP, hours, phone. Every page reads from it.
 Update once → updates schema, hero, footer, and everything else.
+
+## Environment variables
+
+| Variable | Purpose | Set in |
+|---|---|---|
+| `FRESHDESK_SUBDOMAIN` | Your Freshdesk subdomain (e.g., `foundsock`) | Cloudflare Pages env |
+| `FRESHDESK_API_KEY` | Freshdesk API key (Freshdesk Dashboard → Profile → API key) | Cloudflare Pages env (encrypted) |
+| `GOOGLE_PLACES_API_KEY` | For build-time review fetch | GitHub Actions secret |
+| `PUBLIC_MAPS_API_KEY` | For Google Maps embed | Cloudflare Pages env |
+| `GOOGLE_PLACE_ID` | Your laundromat's Place ID | `src/data/business.json` |
+
+Local dev: add to `.env.local` (gitignored).

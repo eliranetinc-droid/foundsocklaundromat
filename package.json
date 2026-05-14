@@ -14,10 +14,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "lh": "lhci autorun"
+    "lh": "lhci autorun",
+    "generate-types": "wrangler types"
   },
   "dependencies": {
-    "astro": "^6.3.3"
+    "@astrojs/cloudflare": "^13.5.1",
+    "astro": "^6.3.3",
+    "wrangler": "^4.91.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
@@ -29,5 +32,8 @@
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.6"
+  },
+  "overrides": {
+    "vite": "^7"
   }
 }

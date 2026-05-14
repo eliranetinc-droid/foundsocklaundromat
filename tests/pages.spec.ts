@@ -73,3 +73,15 @@ test('blog post page renders', async ({ page }) => {
   const ld = await page.locator('script[type="application/ld+json"]').allInnerTexts();
   expect(ld.some(s => JSON.parse(s)['@type'] === 'Article')).toBe(true);
 });
+
+test('contact form posts to API', async ({ page }) => {
+  await page.route('/api/submit-ticket', route => {
+    route.fulfill({ status: 200, body: JSON.stringify({ ok: true, ticketId: 1 }) });
+  });
+  await page.goto('/contact');
+  await page.fill('input[name="name"]', 'Test User');
+  await page.fill('input[name="email"]', 'test@example.com');
+  await page.fill('textarea[name="message"]', 'Test message');
+  await page.click('button[type="submit"]');
+  await expect(page.locator('[data-status]')).toContainText(/got it/i);
+});

@@ -1,15 +1,16 @@
 ---
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-
 // Three photo slots. If a photo is missing, fall back to a brand-colored block.
 // Owner drops these in /public/photos/storefront.jpg, /machines.jpg, /interior.jpg
-const publicDir = join(process.cwd(), 'public');
+// Use Vite glob to detect available photos (compatible with Cloudflare adapter).
+const availablePhotos = import.meta.glob('/public/photos/{storefront,machines,interior}.jpg', { eager: false });
+const photoSrcs = new Set(
+  Object.keys(availablePhotos).map(k => k.replace('/public', ''))
+);
 const photos = [
   { src: '/photos/storefront.jpg', alt: 'Outside The Found Sock Laundromat in Brighton, MA', tint: 'from-slate-300 to-slate-500' },
   { src: '/photos/machines.jpg',   alt: 'Brand-new front-load washers',                       tint: 'from-red-200 to-brand-red' },
   { src: '/photos/interior.jpg',   alt: 'Clean folding tables and seating area',              tint: 'from-blue-200 to-brand-blue' },
-].map(p => ({ ...p, exists: existsSync(join(publicDir, p.src)) }));
+].map(p => ({ ...p, exists: photoSrcs.has(p.src) }));
 ---
 <section class="bg-cream">
   <div class="max-w-6xl mx-auto px-5 py-12">
