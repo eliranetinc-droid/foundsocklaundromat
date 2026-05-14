@@ -1,0 +1,47 @@
+---
+import Layout from '../components/Layout.astro';
+import LocationBlock from '../components/LocationBlock.astro';
+import OpenNowBadge from '../components/OpenNowBadge.astro';
+import { getBusiness } from '../lib/business';
+import { generateBreadcrumbSchema } from '../lib/schema';
+
+const b = getBusiness();
+const breadcrumbs = generateBreadcrumbSchema([
+  { name: 'Home', url: 'https://www.foundsocklaundromat.com/' },
+  { name: 'Visit', url: 'https://www.foundsocklaundromat.com/visit' },
+]);
+---
+<Layout
+  title="Visit · 76 Washington St, Brighton MA · Open 6am–11pm"
+  description="Find us at 76 Washington Street in Brighton, MA. Open daily 6am–11pm. Street parking, free Wi-Fi, comfortable seating. Everything first-timers should know."
+  extraSchemas={[breadcrumbs]}
+>
+  <section class="max-w-3xl mx-auto px-5 py-14 md:py-20">
+    <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">Visit us</p>
+    <h1 class="text-5xl font-bold tracking-tight mb-4 leading-tight">76 Washington St,<br/>Brighton.</h1>
+    <OpenNowBadge />
+
+    <div class="grid md:grid-cols-2 gap-6 mt-10">
+      <div class="bg-cream rounded-2xl p-6">
+        <h2 class="text-xs uppercase tracking-[0.2em] text-brand-blue font-bold mb-2">Hours</h2>
+        <p class="text-lg font-semibold">Daily 6 AM – 11 PM</p>
+        <p class="text-sm opacity-65 mt-1">Open every day, including holidays</p>
+      </div>
+      <div class="bg-cream rounded-2xl p-6">
+        <h2 class="text-xs uppercase tracking-[0.2em] text-brand-blue font-bold mb-2">Parking</h2>
+        <p class="text-sm leading-relaxed">Street parking is available right out front on Washington St. Free with a 2-hour limit.</p>
+      </div>
+    </div>
+
+    <div class="mt-10">
+      <h2 class="text-2xl font-bold mb-5">First time here?</h2>
+      <ol class="space-y-4 text-sm leading-relaxed">
+        <li class="flex gap-4"><span class="font-bold text-brand-red flex-shrink-0">1.</span><div><strong>Bring detergent</strong> or buy single-load packs at the kiosk.</div></li>
+        <li class="flex gap-4"><span class="font-bold text-brand-red flex-shrink-0">2.</span><div><strong>No cash needed.</strong> Tap with credit card, Apple Pay, or a loyalty card (sold at the kiosk).</div></li>
+        <li class="flex gap-4"><span class="font-bold text-brand-red flex-shrink-0">3.</span><div><strong>Pick a washer</strong> by load size — we have 20, 30, 35, and 45 lb machines.</div></li>
+        <li class="flex gap-4"><span class="font-bold text-brand-red flex-shrink-0">4.</span><div><strong>Or use the FasCard app</strong> on your phone — see open machines, start a cycle by scanning, get notified when done.</div></li>
+      </ol>
+    </div>
+  </section>
+  <LocationBlock />
+</Layout>

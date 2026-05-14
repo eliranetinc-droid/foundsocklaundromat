@@ -33,3 +33,9 @@ test('pricing page renders prices', async ({ page }) => {
   await expect(page.locator('text=$7.75')).toBeVisible();
   await expect(page.locator('text=$0.50')).toBeVisible();
 });
+
+test('visit page has hours and address', async ({ page }) => {
+  await page.goto('/visit');
+  await expect(page).toHaveTitle(/76 Washington/);
+  await expect(page.locator('text=Daily 6 AM – 11 PM')).toBeVisible();
+});
