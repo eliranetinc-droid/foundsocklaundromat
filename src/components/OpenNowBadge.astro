@@ -1,0 +1,55 @@
+---
+import { getOpenStatus } from '../lib/open-hours';
+const status = getOpenStatus();
+---
+<span
+  class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium"
+  class:list={[
+    status.isOpen ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+  ]}
+  data-open-now-badge
+>
+  <span
+    class="w-1.5 h-1.5 rounded-full inline-block"
+    class:list={[
+      status.isOpen ? 'bg-emerald-500 shadow-[0_0_6px_#10b981]' : 'bg-red-500'
+    ]}
+    aria-hidden="true"
+  />
+  <span data-label>{status.label}</span>
+  <span data-detail class="opacity-80">· {status.detail}</span>
+</span>
+
+<script>
+  // Refresh badge every minute without page reload
+  // Inline IIFE — minimal JS to keep budget < 10KB
+  (function () {
+    const refresh = async () => {
+      // Re-run the same logic in the browser. Hardcode hours since they don't change.
+      const OPEN_MIN = 6 * 60;
+      const CLOSE_MIN = 23 * 60;
+      const fmt = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
+      });
+      const parts = fmt.formatToParts(new Date());
+      const h = Number(parts.find(p => p.type === 'hour')?.value ?? 0) % 24;
+      const m = Number(parts.find(p => p.type === 'minute')?.value ?? 0);
+      const nowMin = h * 60 + m;
+      const isOpen = nowMin >= OPEN_MIN && nowMin < CLOSE_MIN;
+
+      document.querySelectorAll<HTMLElement>('[data-open-now-badge]').forEach(badge => {
+        const lbl = badge.querySelector<HTMLElement>('[data-label]');
+        const det = badge.querySelector<HTMLElement>('[data-detail]');
+        if (!lbl || !det) return;
+        if (isOpen) {
+          lbl.textContent = 'Open now';
+          det.textContent = '· closes 11 PM';
+        } else {
+          lbl.textContent = 'Closed';
+          det.textContent = '· opens 6 AM';
+        }
+      });
+    };
+    setInterval(refresh, 60_000);
+  })();
+</script>
