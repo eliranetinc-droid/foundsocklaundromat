@@ -6,21 +6,29 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUTPUT_PATH = path.join(__dirname, '..', 'src', 'data', 'reviews.json');
 
 export async function fetchReviews({ apiKey, placeId }) {
-  const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=rating,user_ratings_total,reviews&key=${apiKey}`;
-  const res = await fetch(url);
-  if (!res.ok) return null;
-  const data = await res.json();
-  const r = data.result;
-  if (!r) return null;
+  const url = `https://places.googleapis.com/v1/places/${placeId}`;
+  const res = await fetch(url, {
+    headers: {
+      'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask': 'rating,userRatingCount,reviews',
+    },
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    console.warn(`[fetch-google-reviews] Places API returned ${res.status}: ${errText.slice(0, 300)}`);
+    return null;
+  }
+  const r = await res.json();
+  if (!r || typeof r.rating !== 'number') return null;
   return {
     rating: r.rating,
-    count: r.user_ratings_total,
+    count: r.userRatingCount ?? 0,
     fetchedAt: new Date().toISOString(),
     reviews: (r.reviews ?? []).slice(0, 5).map(rv => ({
-      author: rv.author_name,
+      author: rv.authorAttribution?.displayName ?? 'Anonymous',
       rating: rv.rating,
-      text: rv.text,
-      relativeTime: rv.relative_time_description,
+      text: rv.text?.text ?? rv.originalText?.text ?? '',
+      relativeTime: rv.relativePublishTimeDescription ?? '',
     })),
   };
 }
