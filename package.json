@@ -16,6 +16,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "lh": "lhci autorun",
+    "deploy": "astro build && wrangler deploy",
     "generate-types": "wrangler types"
   },
   "dependencies": {
