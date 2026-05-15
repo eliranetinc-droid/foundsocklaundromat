@@ -6,9 +6,9 @@ const photoSrcs = new Set(
   Object.keys(availablePhotos).map(k => k.replace('/public', ''))
 );
 const photos = [
-  { src: '/photos/inside-1.jpg', alt: 'Inside the laundromat — wide view of dryer wall and washers',  tint: 'from-slate-300 to-slate-500' },
-  { src: '/photos/inside-2.jpg', alt: 'The long aisle of dryers and washers, looking toward the back', tint: 'from-blue-200 to-brand-blue' },
-  { src: '/photos/inside-3.jpg', alt: 'Big stainless steel folding tables and the seating area',       tint: 'from-amber-100 to-amber-300' },
+  { src: '/photos/inside-1.jpg', alt: 'Wide view of the dryer wall and washers, with carts in the middle', tint: 'from-slate-300 to-slate-500' },
+  { src: '/photos/inside-2.jpg', alt: 'Big stainless steel folding tables with a fan and machines behind', tint: 'from-amber-100 to-amber-300' },
+  { src: '/photos/inside-3.jpg', alt: 'Seating area with dining tables, chairs, and machines visible',     tint: 'from-blue-200 to-brand-blue' },
 ].map(p => ({ ...p, exists: photoSrcs.has(p.src) }));
 ---
 <section class="bg-cream">
