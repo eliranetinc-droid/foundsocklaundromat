@@ -1,0 +1,145 @@
+---
+// Detailed "Report an Issue" form — mirrors the Wix layout (14 fields including file upload).
+// Submits as multipart/form-data to /api/submit-issue which forwards to Freshdesk with attachment.
+
+const machineNumbers = Array.from({ length: 30 }, (_, i) => String(i + 1));
+const cardTypes = ['Credit Card', 'Apple Pay', 'Google Pay', 'Loyalty Card (FasCard)', 'Other'];
+const machineTypes = ['Washer', 'Dryer'];
+
+// Generate 24h x 4 (15-min intervals) time options
+const times: string[] = [];
+for (let h = 0; h < 24; h++) {
+  for (let m = 0; m < 60; m += 15) {
+    times.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+  }
+}
+
+const inputClass = 'w-full border-[1.5px] border-line rounded-xl px-3.5 py-2.5 text-sm focus:border-brand-blue focus:outline-none bg-white';
+const labelClass = 'text-xs font-bold text-brand-blue-darker block mb-1.5 tracking-wide';
+---
+<form class="max-w-3xl" data-issue-form enctype="multipart/form-data">
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+    <div>
+      <label class={labelClass}>First name</label>
+      <input type="text" name="firstName" required maxlength="60" class={inputClass} />
+    </div>
+    <div>
+      <label class={labelClass}>Machine type</label>
+      <select name="machineType" class={inputClass}>
+        <option value="">Choose an option</option>
+        {machineTypes.map(t => <option value={t}>{t}</option>)}
+      </select>
+    </div>
+    <div>
+      <label class={labelClass}>Card type</label>
+      <select name="cardType" class={inputClass}>
+        <option value="">Choose an option</option>
+        {cardTypes.map(t => <option value={t}>{t}</option>)}
+      </select>
+    </div>
+
+    <div>
+      <label class={labelClass}>Last name</label>
+      <input type="text" name="lastName" required maxlength="60" class={inputClass} />
+    </div>
+    <div>
+      <label class={labelClass}>Machine number</label>
+      <select name="machineNumber" class={inputClass}>
+        <option value="">Choose an option</option>
+        {machineNumbers.map(n => <option value={n}>{n}</option>)}
+      </select>
+    </div>
+    <div>
+      <label class={labelClass}>Credit card last 4 digits</label>
+      <input type="text" name="cardLast4" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="1234" class={inputClass} />
+    </div>
+
+    <div>
+      <label class={labelClass}>Loyalty card #</label>
+      <input type="text" name="loyaltyCard" maxlength="20" class={inputClass} />
+    </div>
+    <div>
+      <label class={labelClass}>Email</label>
+      <input type="email" name="email" required class={inputClass} />
+    </div>
+    <div>
+      <label class={labelClass}>Phone</label>
+      <input type="tel" name="phone" class={inputClass} placeholder="(617) 555-1234" />
+    </div>
+
+    <div>
+      <label class={labelClass}>Date of issue</label>
+      <input type="date" name="issueDate" class={inputClass} />
+    </div>
+    <div>
+      <label class={labelClass}>Time of issue</label>
+      <select name="issueTime" class={inputClass}>
+        <option value="">Choose an option</option>
+        {times.map(t => <option value={t}>{t}</option>)}
+      </select>
+    </div>
+    <div>
+      <label class={labelClass}>Cost ($)</label>
+      <input type="text" name="cost" inputmode="decimal" placeholder="6.00" class={inputClass} />
+    </div>
+
+  </div>
+
+  <div class="mt-4">
+    <label class={labelClass}>Image of machine (optional)</label>
+    <input type="file" name="image" accept="image/*" class="block w-full text-sm text-brand-blue-darker file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-brand-blue/10 file:text-brand-blue hover:file:bg-brand-blue/20 file:cursor-pointer" />
+    <p class="text-xs opacity-55 mt-1">Max 10 MB. JPG, PNG, or HEIC.</p>
+  </div>
+
+  <div class="mt-4">
+    <label class={labelClass}>Message — describe what happened</label>
+    <textarea name="message" required rows="5" maxlength="5000" placeholder="Tell us what happened — we'll get back to you within a few hours during open hours." class="w-full border-[1.5px] border-line rounded-xl px-3.5 py-3 text-sm focus:border-brand-blue focus:outline-none resize-y bg-white"></textarea>
+  </div>
+
+  <div class="mt-6 flex items-center gap-4">
+    <button type="submit" class="bg-brand-red text-white font-bold text-sm px-8 py-3.5 rounded-full shadow-[0_4px_14px_rgba(200,0,20,0.35)] disabled:opacity-50 transition-opacity">
+      Send →
+    </button>
+    <div data-status class="text-sm flex-1" aria-live="polite"></div>
+  </div>
+
+</form>
+
+<script>
+  document.querySelectorAll<HTMLFormElement>('[data-issue-form]').forEach(form => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+      const status = form.querySelector<HTMLElement>('[data-status]')!;
+
+      // Validate file size client-side (Cloudflare Workers have a 100MB request body limit, we cap at 10MB)
+      const fileInput = form.querySelector<HTMLInputElement>('input[type="file"]');
+      const file = fileInput?.files?.[0];
+      if (file && file.size > 10 * 1024 * 1024) {
+        status.textContent = 'Image is too big — max 10 MB.';
+        status.className = 'text-sm text-brand-red flex-1';
+        return;
+      }
+
+      btn.disabled = true;
+      status.textContent = 'Sending…';
+      status.className = 'text-sm opacity-70 flex-1';
+
+      try {
+        const res = await fetch('/api/submit-issue', { method: 'POST', body: new FormData(form) });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json.error || `status ${res.status}`);
+        status.textContent = "✓ Got it. We'll get back to you within a few hours.";
+        status.className = 'text-sm text-emerald-700 flex-1';
+        form.reset();
+      } catch (err) {
+        status.textContent = "Couldn't send. Please email support@foundsocklaundromat.com directly.";
+        status.className = 'text-sm text-brand-red flex-1';
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+</script>
