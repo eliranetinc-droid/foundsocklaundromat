@@ -6,24 +6,37 @@ const b = getBusiness();
 <section class="bg-gradient-to-br from-brand-blue-darker via-brand-blue-deep to-brand-blue text-white relative overflow-hidden">
   <div class="absolute inset-0 opacity-15" style="background: radial-gradient(circle at 70% 30%, rgba(200,0,20,0.4) 0%, transparent 50%);" aria-hidden="true"></div>
   <div class="max-w-6xl mx-auto px-5 py-12 md:py-20 relative">
-    <p class="text-xs uppercase tracking-[0.2em] opacity-70 mb-4">{b.address.addressLocality}, {b.address.addressRegion}</p>
-    <OpenNowBadge />
-    <h1 class="text-5xl md:text-7xl font-bold leading-[0.95] tracking-tight mt-5 mb-5">
-      Brighton's<br/>
-      <em class="font-serif text-brand-red-soft italic font-normal">cleanest</em><br/>
-      laundromat.
-    </h1>
-    <p class="text-base md:text-lg opacity-80 max-w-md leading-relaxed mb-7">
-      Brand-new card-operated machines. Start them from your phone, pay with Apple Pay or your loyalty card. Free Wi-Fi, comfy seating, and plenty of family-size washers.
-    </p>
-    <div class="flex flex-wrap gap-3">
-      <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(formatAddress(b))}`}
-         class="bg-brand-red text-white font-bold text-sm px-6 py-3.5 rounded-full inline-flex items-center gap-2 shadow-[0_4px_14px_rgba(200,0,20,0.35)] hover:bg-brand-red-soft transition-colors">
-        Get Directions →
-      </a>
-      <a href="/pricing" class="text-white font-medium text-sm px-4 py-3.5 inline-flex items-center gap-1.5 opacity-85 hover:opacity-100">
-        Pricing →
-      </a>
+    <div class="grid md:grid-cols-2 gap-10 md:gap-12 items-center">
+
+      <div>
+        <p class="text-xs uppercase tracking-[0.2em] opacity-70 mb-4">{b.address.addressLocality}, {b.address.addressRegion}</p>
+        <OpenNowBadge />
+        <h1 class="text-5xl md:text-7xl font-bold leading-[0.95] tracking-tight mt-5 mb-5">
+          Brighton's<br/>
+          <em class="font-serif text-brand-red-soft italic font-normal">cleanest</em><br/>
+          laundromat.
+        </h1>
+        <p class="text-base md:text-lg opacity-80 max-w-md leading-relaxed mb-7">
+          Brand-new card-operated machines. Start them from your phone, pay with Apple Pay or your loyalty card. Free Wi-Fi, comfy seating, and plenty of family-size washers.
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(formatAddress(b))}`}
+             class="bg-brand-red text-white font-bold text-sm px-6 py-3.5 rounded-full inline-flex items-center gap-2 shadow-[0_4px_14px_rgba(200,0,20,0.35)] hover:bg-brand-red-soft transition-colors">
+            Get Directions →
+          </a>
+          <a href="/pricing" class="text-white font-medium text-sm px-4 py-3.5 inline-flex items-center gap-1.5 opacity-85 hover:opacity-100">
+            Pricing →
+          </a>
+        </div>
+      </div>
+
+      <div class="hidden md:flex items-center justify-center">
+        <div class="bg-white p-3 pb-4 rounded-sm shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] -rotate-2 max-w-md transition-transform hover:-rotate-1 hover:scale-[1.02]">
+          <img src="/photos/storefront.jpg" alt="Storefront of The Found Sock Laundromat at 76 Washington St, Brighton MA" width="800" height="533" loading="eager" decoding="async" fetchpriority="high" class="w-full aspect-[3/2] object-cover" />
+          <p class="text-brand-blue-darker text-center mt-3 text-sm font-serif italic">76 Washington St · Brighton</p>
+        </div>
+      </div>
+
     </div>
   </div>
 </section>
