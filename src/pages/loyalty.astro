@@ -21,6 +21,11 @@ const breadcrumbs = generateBreadcrumbSchema([
     <h1 class="text-5xl font-bold tracking-tight mb-6 leading-tight">10% cashback,<br/>forever.</h1>
     <p class="text-lg opacity-70 max-w-xl mb-10">A simple way to save and a way to use cash. The card costs ${loyalty.cardFee.toFixed(2)} once — that's it.</p>
 
+    <figure class="mb-12">
+      <img src="/photos/kiosk.jpg" alt="The FasCard touchscreen kiosk where you buy and reload your loyalty card" class="w-full aspect-[4/3] object-cover rounded-2xl shadow-sm" loading="lazy" decoding="async" width="1600" height="1200" />
+      <figcaption class="text-xs opacity-55 mt-2 italic">Our touchscreen kiosk — buy a card, load it with cash or credit, check balance.</figcaption>
+    </figure>
+
     <ol class="space-y-6">
       {[
         { n: 1, t: 'Buy the card at the kiosk', b: `One-time fee: $${loyalty.cardFee.toFixed(2)}. Keep it forever, reload it anytime.` },

@@ -36,3 +36,7 @@ brand-assets/
 # Claude Code local settings
 .claude/
 test-results/
+
+# Photo source folders (raw originals from Wix + GMB; processed copies live in public/photos/)
+public/photos/wix-source/
+public/photos/gmb-source/

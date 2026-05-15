@@ -8,11 +8,21 @@ const breadcrumbs = generateBreadcrumbSchema([
   { name: 'Gallery', url: 'https://www.foundsocklaundromat.com/gallery' },
 ]);
 
-// 12 slots — owner drops photos here. Falls back to brand-tinted blocks.
-const photos = Array.from({ length: 12 }, (_, i) => ({
-  src: `/photos/gallery/${String(i + 1).padStart(2, '0')}.jpg`,
-  alt: `Inside The Found Sock Laundromat ${i + 1}`,
-}));
+// Real captions matching the actual photos in /public/photos/gallery/
+const photos = [
+  { src: '/photos/gallery/01.jpg', alt: 'Storefront — The Found Sock Laundromat at 76 Washington St, Brighton MA' },
+  { src: '/photos/gallery/02.jpg', alt: 'Wide view of dryers and washers, clean and well-lit' },
+  { src: '/photos/gallery/03.jpg', alt: 'LG front-load washers — 25 lb capacity, FasCard payment' },
+  { src: '/photos/gallery/04.jpg', alt: 'Comfortable seating area with tables and chairs' },
+  { src: '/photos/gallery/05.jpg', alt: 'LG front-load 25 lb washer signage with payment options' },
+  { src: '/photos/gallery/06.jpg', alt: 'FasCard touchscreen kiosk — buy a card, load with cash or credit' },
+  { src: '/photos/gallery/07.jpg', alt: 'Welcome sign on the door — store hours 6 AM to 11 PM, every day' },
+  { src: '/photos/gallery/08.jpg', alt: 'FasCard payment terminals on every machine' },
+  { src: '/photos/gallery/09.jpg', alt: 'Soap Center vending — detergent, bleach, fabric softener' },
+  { src: '/photos/gallery/10.jpg', alt: 'Dryer wall — large capacity dryers' },
+  { src: '/photos/gallery/11.jpg', alt: 'Seating and folding area' },
+  { src: '/photos/gallery/12.jpg', alt: 'Storefront — daytime view' },
+];
 ---
 <Layout
   title="Photo Gallery · The Found Sock Laundromat, Brighton MA"
