@@ -1,12 +1,13 @@
 ---
-// Detailed "Report an Issue" form — mirrors the Wix layout (14 fields including file upload).
-// Submits as multipart/form-data to /api/submit-issue which forwards to Freshdesk with attachment.
+// Detailed "Report an Issue" form — all fields required, with conditional fields
+// enforced only when visible. Submits as multipart/form-data to /api/submit-issue
+// which forwards to Freshdesk with attachment.
 
-const machineNumbers = Array.from({ length: 30 }, (_, i) => String(i + 1));
-const cardTypes = ['Credit Card', 'Apple Pay', 'Google Pay', 'Loyalty Card (FasCard)', 'Other'];
-const machineTypes = ['Washer', 'Dryer'];
+const machineTypes = ['Washer', 'Dryer', 'Vending Machine', 'Touch Screen Kiosk'];
+const washerNumbers = Array.from({ length: 20 }, (_, i) => String(i + 1));
+const dryerNumbers = Array.from({ length: 16 }, (_, i) => String(i + 1));
+const cardTypes = ['Credit Card', 'Loyalty Card'];
 
-// Generate 24h x 4 (15-min intervals) time options
 const times: string[] = [];
 for (let h = 0; h < 24; h++) {
   for (let m = 0; m < 60; m += 15) {
@@ -16,49 +17,19 @@ for (let h = 0; h < 24; h++) {
 
 const inputClass = 'w-full border-[1.5px] border-line rounded-xl px-3.5 py-2.5 text-sm focus:border-brand-blue focus:outline-none bg-white';
 const labelClass = 'text-xs font-bold text-brand-blue-darker block mb-1.5 tracking-wide';
+const groupHeading = 'text-xs uppercase tracking-[0.2em] text-brand-blue font-bold mb-3 mt-8 first:mt-0';
 ---
 <form class="max-w-3xl" data-issue-form enctype="multipart/form-data">
 
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-
+  <h2 class={groupHeading}>Your info</h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div>
       <label class={labelClass}>First name</label>
       <input type="text" name="firstName" required maxlength="60" class={inputClass} />
     </div>
     <div>
-      <label class={labelClass}>Machine type</label>
-      <select name="machineType" class={inputClass}>
-        <option value="">Choose an option</option>
-        {machineTypes.map(t => <option value={t}>{t}</option>)}
-      </select>
-    </div>
-    <div>
-      <label class={labelClass}>Card type</label>
-      <select name="cardType" class={inputClass}>
-        <option value="">Choose an option</option>
-        {cardTypes.map(t => <option value={t}>{t}</option>)}
-      </select>
-    </div>
-
-    <div>
       <label class={labelClass}>Last name</label>
       <input type="text" name="lastName" required maxlength="60" class={inputClass} />
-    </div>
-    <div>
-      <label class={labelClass}>Machine number</label>
-      <select name="machineNumber" class={inputClass}>
-        <option value="">Choose an option</option>
-        {machineNumbers.map(n => <option value={n}>{n}</option>)}
-      </select>
-    </div>
-    <div>
-      <label class={labelClass}>Credit card last 4 digits</label>
-      <input type="text" name="cardLast4" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="1234" class={inputClass} />
-    </div>
-
-    <div>
-      <label class={labelClass}>Loyalty card #</label>
-      <input type="text" name="loyaltyCard" maxlength="20" class={inputClass} />
     </div>
     <div>
       <label class={labelClass}>Email</label>
@@ -66,39 +37,86 @@ const labelClass = 'text-xs font-bold text-brand-blue-darker block mb-1.5 tracki
     </div>
     <div>
       <label class={labelClass}>Phone</label>
-      <input type="tel" name="phone" class={inputClass} placeholder="(617) 555-1234" />
+      <input type="tel" name="phone" required class={inputClass} placeholder="(617) 555-1234" />
     </div>
+  </div>
 
+  <h2 class={groupHeading}>What machine</h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <label class={labelClass}>Machine type</label>
+      <select name="machineType" required class={inputClass} data-machine-type>
+        <option value="">Choose an option</option>
+        {machineTypes.map(t => <option value={t}>{t}</option>)}
+      </select>
+    </div>
+    <div data-machine-number-wrap class="hidden">
+      <label class={labelClass}>Machine number</label>
+      <select name="machineNumber" class={inputClass} data-machine-number>
+        <option value="">Choose a number</option>
+      </select>
+      <template data-numbers="Washer">
+        {washerNumbers.map(n => <option value={n}>{n}</option>)}
+      </template>
+      <template data-numbers="Dryer">
+        {dryerNumbers.map(n => <option value={n}>{n}</option>)}
+      </template>
+    </div>
+  </div>
+
+  <h2 class={groupHeading}>When it happened</h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div>
       <label class={labelClass}>Date of issue</label>
-      <input type="date" name="issueDate" class={inputClass} />
+      <input type="date" name="issueDate" required class={inputClass} />
     </div>
     <div>
       <label class={labelClass}>Time of issue</label>
-      <select name="issueTime" class={inputClass}>
-        <option value="">Choose an option</option>
+      <select name="issueTime" required class={inputClass}>
+        <option value="">Choose a time</option>
         {times.map(t => <option value={t}>{t}</option>)}
       </select>
     </div>
+  </div>
+
+  <h2 class={groupHeading}>How you paid</h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div>
-      <label class={labelClass}>Cost ($)</label>
-      <input type="text" name="cost" inputmode="decimal" placeholder="6.00" class={inputClass} />
+      <label class={labelClass}>Card type</label>
+      <select name="cardType" required class={inputClass} data-card-type>
+        <option value="">Choose an option</option>
+        {cardTypes.map(t => <option value={t}>{t}</option>)}
+      </select>
     </div>
-
+    <div data-card-last4-wrap class="hidden">
+      <label class={labelClass}>Credit card last 4 #</label>
+      <input type="text" name="cardLast4" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="1234" class={inputClass} />
+    </div>
+    <div data-loyalty-wrap class="hidden">
+      <label class={labelClass}>Loyalty card #</label>
+      <input type="text" name="loyaltyCard" maxlength="20" placeholder="Full card number" class={inputClass} />
+    </div>
+    <div>
+      <label class={labelClass}>Cost — amount you're claiming ($)</label>
+      <input type="text" name="cost" required inputmode="decimal" placeholder="6.00" class={inputClass} />
+    </div>
   </div>
 
-  <div class="mt-4">
-    <label class={labelClass}>Image of machine (optional)</label>
-    <input type="file" name="image" accept="image/*" class="block w-full text-sm text-brand-blue-darker file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-brand-blue/10 file:text-brand-blue hover:file:bg-brand-blue/20 file:cursor-pointer" />
-    <p class="text-xs opacity-55 mt-1">Max 10 MB. JPG, PNG, or HEIC.</p>
+  <h2 class={groupHeading}>Photo of the issue</h2>
+  <div>
+    <input type="file" name="image" accept="image/*" required data-image-input class="block w-full text-sm text-brand-blue-darker file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-brand-blue/10 file:text-brand-blue hover:file:bg-brand-blue/20 file:cursor-pointer" />
+    <p class="text-xs opacity-55 mt-1">Max 10 MB. JPG, PNG, or HEIC. A clear photo helps us resolve your claim faster.</p>
   </div>
 
-  <div class="mt-4">
-    <label class={labelClass}>Message — describe what happened</label>
+  <h2 class={groupHeading}>What happened</h2>
+  <div>
+    <label class={labelClass}>Message</label>
     <textarea name="message" required rows="5" maxlength="5000" placeholder="Tell us what happened — we'll get back to you within a few hours during open hours." class="w-full border-[1.5px] border-line rounded-xl px-3.5 py-3 text-sm focus:border-brand-blue focus:outline-none resize-y bg-white"></textarea>
   </div>
 
-  <div class="mt-6 flex items-center gap-4">
+  <p class="text-xs opacity-55 mt-6">All fields are required.</p>
+
+  <div class="mt-3 flex items-center gap-4">
     <button type="submit" class="bg-brand-red text-white font-bold text-sm px-8 py-3.5 rounded-full shadow-[0_4px_14px_rgba(200,0,20,0.35)] disabled:opacity-50 transition-opacity">
       Send →
     </button>
@@ -109,15 +127,71 @@ const labelClass = 'text-xs font-bold text-brand-blue-darker block mb-1.5 tracki
 
 <script>
   document.querySelectorAll<HTMLFormElement>('[data-issue-form]').forEach(form => {
+    const machineTypeSel = form.querySelector<HTMLSelectElement>('[data-machine-type]')!;
+    const machineNumberWrap = form.querySelector<HTMLElement>('[data-machine-number-wrap]')!;
+    const machineNumberSel = form.querySelector<HTMLSelectElement>('[data-machine-number]')!;
+    const cardTypeSel = form.querySelector<HTMLSelectElement>('[data-card-type]')!;
+    const cardLast4Wrap = form.querySelector<HTMLElement>('[data-card-last4-wrap]')!;
+    const loyaltyWrap = form.querySelector<HTMLElement>('[data-loyalty-wrap]')!;
+    const cardLast4Input = cardLast4Wrap.querySelector<HTMLInputElement>('input[name="cardLast4"]')!;
+    const loyaltyInput = loyaltyWrap.querySelector<HTMLInputElement>('input[name="loyaltyCard"]')!;
+    const fileInput = form.querySelector<HTMLInputElement>('[data-image-input]')!;
+
+    function syncMachineNumber() {
+      const type = machineTypeSel.value;
+      machineNumberSel.innerHTML = '<option value="">Choose a number</option>';
+      machineNumberSel.value = '';
+      if (type === 'Washer' || type === 'Dryer') {
+        const tpl = form.querySelector<HTMLTemplateElement>(`template[data-numbers="${type}"]`)!;
+        machineNumberSel.append(tpl.content.cloneNode(true));
+        machineNumberWrap.classList.remove('hidden');
+        machineNumberSel.required = true;
+      } else {
+        machineNumberWrap.classList.add('hidden');
+        machineNumberSel.required = false;
+      }
+    }
+
+    function syncCardFields() {
+      const type = cardTypeSel.value;
+      if (type === 'Credit Card') {
+        cardLast4Wrap.classList.remove('hidden');
+        loyaltyWrap.classList.add('hidden');
+        cardLast4Input.required = true;
+        loyaltyInput.required = false;
+        loyaltyInput.value = '';
+      } else if (type === 'Loyalty Card') {
+        loyaltyWrap.classList.remove('hidden');
+        cardLast4Wrap.classList.add('hidden');
+        loyaltyInput.required = true;
+        cardLast4Input.required = false;
+        cardLast4Input.value = '';
+      } else {
+        cardLast4Wrap.classList.add('hidden');
+        loyaltyWrap.classList.add('hidden');
+        cardLast4Input.required = false;
+        loyaltyInput.required = false;
+        cardLast4Input.value = '';
+        loyaltyInput.value = '';
+      }
+    }
+
+    machineTypeSel.addEventListener('change', syncMachineNumber);
+    cardTypeSel.addEventListener('change', syncCardFields);
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
       const status = form.querySelector<HTMLElement>('[data-status]')!;
 
-      // Validate file size client-side (Cloudflare Workers have a 100MB request body limit, we cap at 10MB)
-      const fileInput = form.querySelector<HTMLInputElement>('input[type="file"]');
-      const file = fileInput?.files?.[0];
-      if (file && file.size > 10 * 1024 * 1024) {
+      const file = fileInput.files?.[0];
+      if (!file) {
+        status.textContent = 'Please attach a photo of the issue.';
+        status.className = 'text-sm text-brand-red flex-1';
+        fileInput.focus();
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
         status.textContent = 'Image is too big — max 10 MB.';
         status.className = 'text-sm text-brand-red flex-1';
         return;
@@ -134,6 +208,8 @@ const labelClass = 'text-xs font-bold text-brand-blue-darker block mb-1.5 tracki
         status.textContent = "✓ Got it. We'll get back to you within a few hours.";
         status.className = 'text-sm text-emerald-700 flex-1';
         form.reset();
+        syncMachineNumber();
+        syncCardFields();
       } catch (err) {
         status.textContent = "Couldn't send. Please email support@foundsocklaundromat.com directly.";
         status.className = 'text-sm text-brand-red flex-1';
