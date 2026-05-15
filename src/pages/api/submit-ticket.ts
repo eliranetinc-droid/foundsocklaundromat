@@ -1,11 +1,12 @@
 export const prerender = false;
 
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 import { submitFreshdeskTicket } from '../../lib/freshdesk';
 
 const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async ({ request }) => {
   try {
     let payload: Record<string, unknown>;
     try {
@@ -20,15 +21,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!message || message.length < 1 || message.length > 5000) return jsonResponse({ error: 'invalid_message' }, 400);
     if (type !== 'issue' && type !== 'general')                   return jsonResponse({ error: 'invalid_type' }, 400);
 
-    // Cloudflare Workers expose env via locals.runtime.env; local dev via import.meta.env
-    const runtimeEnv = (locals as any)?.runtime?.env;
-    const subdomain = runtimeEnv?.FRESHDESK_SUBDOMAIN ?? import.meta.env.FRESHDESK_SUBDOMAIN;
-    const apiKey    = runtimeEnv?.FRESHDESK_API_KEY    ?? import.meta.env.FRESHDESK_API_KEY;
+    const subdomain = (env as any).FRESHDESK_SUBDOMAIN as string | undefined;
+    const apiKey    = (env as any).FRESHDESK_API_KEY as string | undefined;
 
     if (!subdomain || !apiKey) {
       console.error('[submit-ticket] missing env vars', {
-        hasRuntimeEnv: !!runtimeEnv,
-        runtimeEnvKeys: runtimeEnv ? Object.keys(runtimeEnv) : null,
         hasSubdomain: !!subdomain,
         hasApiKey: !!apiKey,
       });
