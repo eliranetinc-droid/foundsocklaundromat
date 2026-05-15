@@ -40,3 +40,7 @@ test-results/
 # Photo source folders (raw originals from Wix + GMB; processed copies live in public/photos/)
 public/photos/wix-source/
 public/photos/gmb-source/
+
+# Local-only build artifacts (not for git)
+.lighthouseci/
+.wrangler/
