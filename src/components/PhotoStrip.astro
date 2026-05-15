@@ -1,15 +1,14 @@
 ---
-// Three photo slots. If a photo is missing, fall back to a brand-colored block.
-// Owner drops these in /public/photos/storefront.jpg, /machines.jpg, /interior.jpg
-// Use Vite glob to detect available photos (compatible with Cloudflare adapter).
-const availablePhotos = import.meta.glob('/public/photos/{storefront,machines,interior}.jpg', { eager: false });
+// Three wide interior shots dedicated to the homepage strip.
+// Files at /public/photos/inside-{1,2,3}.jpg
+const availablePhotos = import.meta.glob('/public/photos/inside-{1,2,3}.jpg', { eager: false });
 const photoSrcs = new Set(
   Object.keys(availablePhotos).map(k => k.replace('/public', ''))
 );
 const photos = [
-  { src: '/photos/storefront.jpg', alt: 'Outside The Found Sock Laundromat in Brighton, MA', tint: 'from-slate-300 to-slate-500' },
-  { src: '/photos/machines.jpg',   alt: 'Brand-new front-load washers',                       tint: 'from-red-200 to-brand-red' },
-  { src: '/photos/interior.jpg',   alt: 'Clean folding tables and seating area',              tint: 'from-blue-200 to-brand-blue' },
+  { src: '/photos/inside-1.jpg', alt: 'Inside the laundromat — wide view of dryer wall and washers',  tint: 'from-slate-300 to-slate-500' },
+  { src: '/photos/inside-2.jpg', alt: 'The long aisle of dryers and washers, looking toward the back', tint: 'from-blue-200 to-brand-blue' },
+  { src: '/photos/inside-3.jpg', alt: 'Big stainless steel folding tables and the seating area',       tint: 'from-amber-100 to-amber-300' },
 ].map(p => ({ ...p, exists: photoSrcs.has(p.src) }));
 ---
 <section class="bg-cream">
@@ -17,7 +16,7 @@ const photos = [
     <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">Inside the laundromat</p>
     <div class="flex gap-2">
       {photos.map((p, i) => (
-        <div class={`flex-1 aspect-[4/5] rounded-xl overflow-hidden bg-gradient-to-br ${p.tint} ${i === 1 ? 'md:flex-[1.3]' : ''}`}>
+        <div class={`flex-1 aspect-[3/4] md:aspect-[4/5] rounded-xl overflow-hidden bg-gradient-to-br ${p.tint} ${i === 1 ? 'md:flex-[1.3]' : ''}`}>
           {p.exists && (
             <img src={p.src} alt={p.alt} loading={i === 0 ? 'eager' : 'lazy'} decoding="async" class="w-full h-full object-cover" />
           )}
