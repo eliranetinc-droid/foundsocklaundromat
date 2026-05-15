@@ -25,11 +25,9 @@ export const POST: APIRoute = async ({ request }) => {
     const apiKey    = (env as any).FRESHDESK_API_KEY as string | undefined;
 
     if (!subdomain || !apiKey) {
-      console.error('[submit-ticket] missing env vars', {
-        hasSubdomain: !!subdomain,
-        hasApiKey: !!apiKey,
-      });
-      return jsonResponse({ error: 'server_misconfigured' }, 500);
+      const envKeys = env ? Object.keys(env as Record<string, unknown>) : [];
+      console.error('[submit-ticket] missing env vars', { hasSubdomain: !!subdomain, hasApiKey: !!apiKey, envKeys });
+      return jsonResponse({ error: 'server_misconfigured', debug: { envKeys, hasSubdomain: !!subdomain, hasApiKey: !!apiKey } }, 500);
     }
 
     try {
