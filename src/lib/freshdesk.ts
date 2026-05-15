@@ -17,7 +17,7 @@ export async function submitFreshdeskTicket(input: TicketInput): Promise<{ id: n
     description: input.description.replace(/\n/g, '<br>'),
     priority: input.type === 'issue' ? 2 : 1,
     status: 2, // open
-    type: input.type === 'issue' ? 'Issue Report' : 'General Inquiry',
+    type: input.type === 'issue' ? 'Incident' : 'Question',
   };
 
   const res = await fetch(`https://${input.subdomain}.freshdesk.com/api/v2/tickets`, {
