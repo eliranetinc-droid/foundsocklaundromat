@@ -20,12 +20,9 @@ describe('LocalBusiness schema', () => {
     expect(s.priceRange).toBe('$');
   });
 
-  test('includes aggregateRating when reviews are present', () => {
-    const s = generateLocalBusinessSchema();
-    // reviews.json placeholder ships with rating=4.8, count=217
-    expect(s.aggregateRating).toBeDefined();
-    expect(s.aggregateRating?.['@type']).toBe('AggregateRating');
-    expect(s.aggregateRating?.ratingValue).toBeGreaterThan(0);
+  test('does NOT include aggregateRating (curated review display, not Google-aggregate)', () => {
+    const s = generateLocalBusinessSchema() as Record<string, unknown>;
+    expect(s.aggregateRating).toBeUndefined();
   });
 });
 

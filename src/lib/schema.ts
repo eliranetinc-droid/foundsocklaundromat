@@ -1,5 +1,4 @@
 import { getBusiness } from './business';
-import reviews from '../data/reviews.json';
 
 const baseUrl = 'https://www.foundsocklaundromat.com';
 
@@ -36,11 +35,8 @@ export function generateLocalBusinessSchema() {
     }],
     priceRange: '$',
     paymentAccepted: b.paymentAccepted.join(', '),
-    aggregateRating: reviews.count > 0 ? {
-      '@type': 'AggregateRating',
-      ratingValue: reviews.rating,
-      reviewCount: reviews.count,
-    } : undefined,
+    // aggregateRating intentionally omitted: we curate which reviews display on the
+    // homepage and never claim an aggregate score Google can verify against GMB.
   };
 }
 

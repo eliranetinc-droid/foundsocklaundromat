@@ -1,26 +1,36 @@
 ---
 import reviews from '../data/reviews.json';
+import { getBusiness } from '../lib/business';
+
 type Review = { author: string; rating: number; text: string; relativeTime: string };
-const r: { rating: number; count: number; reviews: Review[] } = reviews;
-const featured = r.reviews.slice(0, 2);
+const data: { rating: number; count: number; reviews: Review[] } = reviews;
+
+// Show only 4★ and 5★ real reviews. Block hides if there are none.
+const positive = (data.reviews ?? []).filter(rv => rv.rating >= 4);
+
+const placeId = getBusiness().googlePlaceId;
+const allReviewsUrl = placeId
+  ? `https://search.google.com/local/reviews?placeid=${placeId}`
+  : null;
 ---
-<section class="bg-cream border-y border-line">
-  <div class="max-w-3xl mx-auto px-5 py-12">
-    <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">What customers say</p>
-    <div class="flex items-baseline gap-3 mb-5">
-      <span class="text-4xl font-bold text-brand-blue-darker tabular-nums leading-none">{r.rating.toFixed(1)}</span>
-      <div class="text-xs">
-        <div class="text-brand-red text-base leading-none">★★★★★</div>
-        <div class="opacity-75 mt-1">{r.count} Google reviews</div>
+{positive.length > 0 && (
+  <section class="bg-cream border-y border-line">
+    <div class="max-w-3xl mx-auto px-5 py-12">
+      <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-5">Recent positive feedback</p>
+      <div class="space-y-2">
+        {positive.slice(0, 3).map(rv => (
+          <div class="bg-white border border-line rounded-xl p-4">
+            <div class="text-brand-red text-sm leading-none mb-2">{'★'.repeat(rv.rating)}<span class="opacity-20">{'★'.repeat(5 - rv.rating)}</span></div>
+            <p class="text-sm leading-relaxed">"{rv.text}"</p>
+            <p class="text-xs opacity-70 mt-2.5">— {rv.author} · {rv.relativeTime}</p>
+          </div>
+        ))}
       </div>
+      {allReviewsUrl && (
+        <a href={allReviewsUrl} target="_blank" rel="noopener noreferrer" class="inline-block mt-5 text-xs font-semibold text-brand-blue hover:text-brand-red border-b border-brand-blue/30 pb-0.5">
+          See all reviews on Google →
+        </a>
+      )}
     </div>
-    <div class="space-y-2">
-      {featured.map(rv => (
-        <div class="bg-white border border-line rounded-xl p-4">
-          <p class="text-sm leading-relaxed">"{rv.text}"</p>
-          <p class="text-xs opacity-70 mt-2.5">— {rv.author} · {rv.relativeTime}</p>
-        </div>
-      ))}
-    </div>
-  </div>
-</section>
+  </section>
+)}
