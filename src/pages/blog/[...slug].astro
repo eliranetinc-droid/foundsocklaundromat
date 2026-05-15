@@ -14,6 +14,28 @@ const { post } = Astro.props;
 const { Content } = await render(post);
 
 const slug = post.slug ?? post.id;
+
+function readingTime(body: string | undefined): number {
+  if (!body) return 4;
+  return Math.max(1, Math.round(body.trim().split(/\s+/).length / 220));
+}
+
+function formatDate(d: Date): string {
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+const allPosts = (await getCollection('blog', ({ data }) => !data.draft));
+const related = allPosts
+  .filter(p => (p.slug ?? p.id) !== slug)
+  .map(p => ({
+    post: p,
+    score: p.data.tags.filter(t => post.data.tags.includes(t)).length,
+  }))
+  .filter(({ score }) => score > 0)
+  .sort((a, b) => b.score - a.score || b.post.data.publishedAt.getTime() - a.post.data.publishedAt.getTime())
+  .slice(0, 3)
+  .map(({ post }) => post);
+
 const articleSchema = generateArticleSchema({
   title: post.data.title,
   description: post.data.description,
@@ -27,6 +49,8 @@ const breadcrumbs = generateBreadcrumbSchema([
   { name: 'Blog', url: 'https://www.foundsocklaundromat.com/blog' },
   { name: post.data.title, url: `https://www.foundsocklaundromat.com/blog/${slug}` },
 ]);
+
+const minutes = readingTime(post.body);
 ---
 <Layout
   title={post.data.title}
@@ -34,17 +58,73 @@ const breadcrumbs = generateBreadcrumbSchema([
   ogImage={post.data.image}
   extraSchemas={[articleSchema, breadcrumbs]}
 >
-  <article class="max-w-2xl mx-auto px-5 py-14 md:py-20">
-    <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">
-      <a href="/blog" class="hover:underline">Blog</a>
-    </p>
-    <h1 class="text-5xl font-bold tracking-tight mb-3 leading-tight">{post.data.title}</h1>
-    <time class="text-sm opacity-55">
-      {post.data.publishedAt.toLocaleDateString('en-US', { dateStyle: 'long' })}
-    </time>
-    <div class="prose prose-lg mt-10 text-brand-blue-darker max-w-none">
-      <Content />
+  <article>
+    <header class="max-w-3xl mx-auto px-5 pt-12 md:pt-20 pb-10">
+      <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-5">
+        <a href="/blog" class="hover:text-brand-red transition-colors">← All posts</a>
+      </p>
+      <div class="flex flex-wrap gap-1.5 mb-5">
+        {post.data.tags.map(tag => (
+          <span class="text-[10px] uppercase tracking-[0.15em] font-bold px-2.5 py-1 rounded-full bg-brand-blue/10 text-brand-blue">{tag}</span>
+        ))}
+      </div>
+      <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05] mb-6">{post.data.title}</h1>
+      <p class="text-xl opacity-70 leading-relaxed mb-7 max-w-2xl">{post.data.description}</p>
+      <div class="flex items-center gap-3 text-xs uppercase tracking-[0.15em] font-semibold opacity-55 pb-2">
+        <time datetime={post.data.publishedAt.toISOString()}>{formatDate(post.data.publishedAt)}</time>
+        <span>·</span>
+        <span>{minutes} min read</span>
+        {post.data.updatedAt && post.data.updatedAt.getTime() !== post.data.publishedAt.getTime() && (
+          <>
+            <span>·</span>
+            <span>Updated {formatDate(post.data.updatedAt)}</span>
+          </>
+        )}
+      </div>
+    </header>
+
+    <div class="border-t border-line">
+      <div class="max-w-3xl mx-auto px-5 py-12 md:py-16">
+        <div class="prose prose-lg max-w-none
+          prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-brand-blue-darker
+          prose-h2:text-3xl prose-h2:mt-14 prose-h2:mb-5
+          prose-h3:text-xl prose-h3:mt-10 prose-h3:mb-4
+          prose-p:text-brand-blue-darker prose-p:leading-[1.75]
+          prose-strong:text-brand-blue-darker prose-strong:font-bold
+          prose-a:text-brand-blue prose-a:font-semibold prose-a:no-underline hover:prose-a:underline
+          prose-ul:my-6 prose-li:my-1.5 prose-li:leading-relaxed
+          prose-ol:my-6
+          prose-table:text-sm prose-th:bg-cream prose-th:text-brand-blue-darker prose-th:font-bold prose-th:px-4 prose-th:py-2.5 prose-td:px-4 prose-td:py-2.5 prose-td:border-line
+          prose-blockquote:border-l-4 prose-blockquote:border-brand-blue prose-blockquote:not-italic prose-blockquote:bg-cream prose-blockquote:py-1 prose-blockquote:px-5 prose-blockquote:rounded-r-lg
+          prose-code:bg-cream prose-code:text-brand-blue prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-code:font-normal">
+          <Content />
+        </div>
+      </div>
     </div>
+
+    {related.length > 0 && (
+      <aside class="bg-cream border-t border-line">
+        <div class="max-w-6xl mx-auto px-5 py-14 md:py-20">
+          <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">Keep reading</p>
+          <h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-10">Related posts</h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {related.map(p => (
+              <a href={`/blog/${p.slug ?? p.id}`} class="group block bg-white rounded-2xl border border-line p-6 hover:border-brand-blue/40 hover:shadow-[0_8px_30px_rgba(40,100,160,0.08)] transition-all">
+                <div class="flex flex-wrap gap-1.5 mb-3">
+                  {p.data.tags.slice(0, 1).map(tag => (
+                    <span class="text-[10px] uppercase tracking-[0.15em] font-bold px-2.5 py-1 rounded-full bg-brand-blue/10 text-brand-blue">{tag}</span>
+                  ))}
+                </div>
+                <h3 class="text-lg font-bold leading-snug mb-2 group-hover:text-brand-blue transition-colors">{p.data.title}</h3>
+                <p class="text-sm opacity-65 leading-relaxed line-clamp-2">{p.data.description}</p>
+                <div class="mt-5 text-xs uppercase tracking-[0.15em] font-semibold opacity-55">{readingTime(p.body)} min read</div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </aside>
+    )}
   </article>
+
   <LocationBlock />
 </Layout>

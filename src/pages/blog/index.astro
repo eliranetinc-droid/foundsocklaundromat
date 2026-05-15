@@ -4,8 +4,22 @@ import LocationBlock from '../../components/LocationBlock.astro';
 import { getCollection } from 'astro:content';
 import { generateBreadcrumbSchema } from '../../lib/schema';
 
-const posts = (await getCollection('blog', ({ data }) => !data.draft))
+const allPosts = (await getCollection('blog', ({ data }) => !data.draft))
   .sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime());
+
+const [featured, ...rest] = allPosts;
+
+function readingTime(body: string | undefined): number {
+  if (!body) return 4;
+  const words = body.trim().split(/\s+/).length;
+  return Math.max(1, Math.round(words / 220));
+}
+
+function formatDate(d: Date): string {
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+const allTags = Array.from(new Set(allPosts.flatMap(p => p.data.tags))).sort();
 
 const breadcrumbs = generateBreadcrumbSchema([
   { name: 'Home', url: 'https://www.foundsocklaundromat.com/' },
@@ -13,24 +27,115 @@ const breadcrumbs = generateBreadcrumbSchema([
 ]);
 ---
 <Layout
-  title="Laundry Tips & News · The Found Sock Laundromat Blog"
-  description="Practical laundry guides written by a Brighton laundromat. How to wash specific items, what to bring, and tips for getting the best results."
+  title="Laundry Tips & Guides · The Found Sock Laundromat Blog"
+  description="Practical laundry guides written by a Brighton laundromat — how to wash specific items, fix common problems, and get the most out of every load."
   extraSchemas={[breadcrumbs]}
 >
-  <section class="max-w-2xl mx-auto px-5 py-14 md:py-20">
-    <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">Blog</p>
-    <h1 class="text-5xl font-bold tracking-tight mb-10 leading-tight">Laundry tips<br/>& neighborhood news.</h1>
-    <div class="space-y-7">
-      {posts.map(post => (
-        <a href={`/blog/${post.slug ?? post.id}`} class="block bg-cream rounded-2xl p-7 hover:bg-line transition-colors">
-          <time class="text-xs uppercase tracking-[0.15em] opacity-70 font-semibold">
-            {post.data.publishedAt.toLocaleDateString('en-US', { dateStyle: 'medium' })}
-          </time>
-          <h2 class="text-xl font-bold mt-1 mb-2 leading-snug">{post.data.title}</h2>
-          <p class="text-sm opacity-65 leading-relaxed">{post.data.description}</p>
+  <section class="max-w-6xl mx-auto px-5 pt-14 md:pt-20 pb-8">
+    <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-4">Blog</p>
+    <h1 class="text-5xl md:text-6xl font-bold tracking-tight leading-[1.05] mb-5 max-w-3xl">
+      Laundry tips,<br/>
+      <span class="font-serif italic font-normal text-brand-blue">straight from</span> a Brighton laundromat.
+    </h1>
+    <p class="text-lg opacity-65 max-w-xl leading-relaxed">Real-world guides written by people who wash a lot of laundry. No fluff, no affiliate links — just what actually works.</p>
+  </section>
+
+  {featured && (
+    <section class="max-w-6xl mx-auto px-5 pb-16 md:pb-24">
+      <a href={`/blog/${featured.slug ?? featured.id}`} class="group block rounded-3xl overflow-hidden border border-line bg-cream hover:border-brand-blue/30 transition-colors">
+        <div class="grid md:grid-cols-[1.2fr_1fr] gap-0">
+          <div class="p-8 md:p-12 lg:p-14 flex flex-col justify-between min-h-[280px]">
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-brand-red font-bold mb-4">Latest post</p>
+              <h2 class="text-3xl md:text-4xl font-bold tracking-tight leading-[1.1] mb-5 group-hover:text-brand-blue transition-colors">{featured.data.title}</h2>
+              <p class="text-base md:text-lg opacity-70 leading-relaxed">{featured.data.description}</p>
+            </div>
+            <div class="flex items-center gap-3 mt-8 text-xs uppercase tracking-[0.15em] font-semibold opacity-60">
+              <time>{formatDate(featured.data.publishedAt)}</time>
+              <span>·</span>
+              <span>{readingTime(featured.body)} min read</span>
+            </div>
+          </div>
+          <div class="hidden md:flex bg-gradient-to-br from-brand-blue via-brand-blue-deep to-brand-blue-darker items-center justify-center p-12 relative overflow-hidden">
+            <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(circle at 30% 20%, white 0%, transparent 40%), radial-gradient(circle at 70% 70%, white 0%, transparent 35%);"></div>
+            <div class="relative text-center text-white">
+              <p class="font-serif italic text-2xl leading-snug opacity-90 max-w-[260px] mx-auto">"{featured.data.title.split(/[?:.—]/)[0].trim()}"</p>
+              <div class="mt-6 inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/15 backdrop-blur text-xs uppercase tracking-[0.2em] font-bold">Read the post →</div>
+            </div>
+          </div>
+        </div>
+      </a>
+    </section>
+  )}
+
+  {allTags.length > 0 && (
+    <section class="max-w-6xl mx-auto px-5 pb-8">
+      <div class="flex flex-wrap items-center gap-2" data-tag-filter>
+        <span class="text-xs uppercase tracking-[0.2em] font-bold opacity-50 mr-2">Filter:</span>
+        <button type="button" data-tag="all" aria-pressed="true" class="text-xs uppercase tracking-[0.15em] font-bold px-4 py-2 rounded-full border border-brand-blue bg-brand-blue text-white transition-colors">All</button>
+        {allTags.map(tag => (
+          <button type="button" data-tag={tag} aria-pressed="false" class="text-xs uppercase tracking-[0.15em] font-bold px-4 py-2 rounded-full border border-line bg-white hover:border-brand-blue hover:text-brand-blue transition-colors">{tag}</button>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <section class="max-w-6xl mx-auto px-5 pb-20 md:pb-28">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5" data-post-grid>
+      {rest.map(post => (
+        <a href={`/blog/${post.slug ?? post.id}`}
+           data-tags={post.data.tags.join(',')}
+           class="group block rounded-2xl border border-line bg-white p-7 md:p-8 hover:border-brand-blue/40 hover:shadow-[0_8px_30px_rgba(40,100,160,0.08)] transition-all">
+          <div class="flex flex-wrap gap-1.5 mb-4">
+            {post.data.tags.slice(0, 2).map(tag => (
+              <span class="text-[10px] uppercase tracking-[0.15em] font-bold px-2.5 py-1 rounded-full bg-brand-blue/10 text-brand-blue">{tag}</span>
+            ))}
+          </div>
+          <h2 class="text-xl md:text-2xl font-bold leading-snug mb-3 group-hover:text-brand-blue transition-colors">{post.data.title}</h2>
+          <p class="text-sm opacity-65 leading-relaxed mb-6 line-clamp-3">{post.data.description}</p>
+          <div class="flex items-center justify-between text-xs uppercase tracking-[0.15em] font-semibold opacity-55">
+            <time>{formatDate(post.data.publishedAt)}</time>
+            <span>{readingTime(post.body)} min read</span>
+          </div>
         </a>
       ))}
     </div>
+
+    <p class="hidden text-center mt-16 text-sm opacity-60" data-no-results>No posts in this category yet.</p>
   </section>
+
   <LocationBlock />
 </Layout>
+
+<script>
+  const filterRow = document.querySelector<HTMLElement>('[data-tag-filter]');
+  const grid = document.querySelector<HTMLElement>('[data-post-grid]');
+  const noResults = document.querySelector<HTMLElement>('[data-no-results]');
+  if (filterRow && grid) {
+    filterRow.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      const btn = target.closest<HTMLButtonElement>('button[data-tag]');
+      if (!btn) return;
+      const tag = btn.dataset.tag!;
+      filterRow.querySelectorAll<HTMLButtonElement>('button[data-tag]').forEach(b => {
+        const isActive = b === btn;
+        b.setAttribute('aria-pressed', String(isActive));
+        if (isActive) {
+          b.classList.add('bg-brand-blue', 'text-white', 'border-brand-blue');
+          b.classList.remove('bg-white', 'border-line');
+        } else {
+          b.classList.remove('bg-brand-blue', 'text-white', 'border-brand-blue');
+          b.classList.add('bg-white', 'border-line');
+        }
+      });
+      let visibleCount = 0;
+      grid.querySelectorAll<HTMLElement>('a[data-tags]').forEach(card => {
+        const tags = (card.dataset.tags || '').split(',');
+        const visible = tag === 'all' || tags.includes(tag);
+        card.classList.toggle('hidden', !visible);
+        if (visible) visibleCount++;
+      });
+      noResults?.classList.toggle('hidden', visibleCount > 0);
+    });
+  }
+</script>
