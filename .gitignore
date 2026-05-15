@@ -44,3 +44,6 @@ public/photos/gmb-source/
 # Local-only build artifacts (not for git)
 .lighthouseci/
 .wrangler/
+
+# Drop folder for new owner-supplied photos before processing
+photo-inbox/
