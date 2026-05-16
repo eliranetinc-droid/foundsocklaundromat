@@ -1,9 +1,11 @@
 ---
+import { Picture } from 'astro:assets';
 import Layout from '../components/Layout.astro';
 import AppDownloadCard from '../components/AppDownloadCard.astro';
 import LocationBlock from '../components/LocationBlock.astro';
 import { getPricing } from '../lib/business';
 import { generateBreadcrumbSchema } from '../lib/schema';
+import kiosk from '../assets/photos/kiosk.jpg';
 
 const { loyalty } = getPricing();
 const breadcrumbs = generateBreadcrumbSchema([
@@ -22,7 +24,7 @@ const breadcrumbs = generateBreadcrumbSchema([
     <p class="text-lg opacity-70 max-w-xl mb-10">A simple way to save and a way to use cash. The card costs ${loyalty.cardFee.toFixed(2)} once — that's it.</p>
 
     <figure class="mb-12">
-      <img src="/photos/kiosk.jpg" alt="The FasCard touchscreen kiosk where you buy and reload your loyalty card" class="w-full aspect-[4/3] object-cover rounded-2xl shadow-sm" loading="lazy" decoding="async" width="1600" height="1200" />
+      <Picture src={kiosk} formats={['avif', 'webp']} widths={[400, 800, 1200]} sizes="(max-width: 768px) 100vw, 640px" alt="The FasCard touchscreen kiosk where you buy and reload your loyalty card" loading="lazy" class="w-full aspect-[4/3] object-cover rounded-2xl shadow-sm" />
       <figcaption class="text-xs opacity-55 mt-2 italic">Our touchscreen kiosk — buy a card, load it with cash or credit, check balance.</figcaption>
     </figure>
 

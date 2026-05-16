@@ -1,8 +1,10 @@
 ---
+import { Picture } from 'astro:assets';
 import Layout from '../components/Layout.astro';
 import AppDownloadCard from '../components/AppDownloadCard.astro';
 import LocationBlock from '../components/LocationBlock.astro';
 import { generateBreadcrumbSchema } from '../lib/schema';
+import payment from '../assets/photos/payment.jpg';
 
 const breadcrumbs = generateBreadcrumbSchema([
   { name: 'Home', url: 'https://www.foundsocklaundromat.com/' },
@@ -28,7 +30,7 @@ const features = [
     <p class="text-lg opacity-70 max-w-xl mb-10">The free FasCard app by Card Concepts Inc. — works at Found Sock and thousands of laundromats nationwide.</p>
 
     <figure class="mb-12">
-      <img src="/photos/payment.jpg" alt="FasCard payment terminals on the front of every washer and dryer" class="w-full aspect-[16/10] object-cover rounded-2xl shadow-sm" loading="lazy" decoding="async" width="1600" height="1000" />
+      <Picture src={payment} formats={['avif', 'webp']} widths={[400, 800, 1200]} sizes="(max-width: 768px) 100vw, 640px" alt="FasCard payment terminals on the front of every washer and dryer" loading="lazy" class="w-full aspect-[16/10] object-cover rounded-2xl shadow-sm" />
       <figcaption class="text-xs opacity-55 mt-2 italic">Every machine has a FasCard reader — scan with your phone or tap to pay.</figcaption>
     </figure>
 

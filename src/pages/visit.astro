@@ -1,9 +1,11 @@
 ---
+import { Picture } from 'astro:assets';
 import Layout from '../components/Layout.astro';
 import LocationBlock from '../components/LocationBlock.astro';
 import OpenNowBadge from '../components/OpenNowBadge.astro';
 import { getBusiness } from '../lib/business';
 import { generateBreadcrumbSchema } from '../lib/schema';
+import storefront from '../assets/photos/storefront.jpg';
 
 const b = getBusiness();
 const breadcrumbs = generateBreadcrumbSchema([
@@ -21,7 +23,7 @@ const breadcrumbs = generateBreadcrumbSchema([
     <h1 class="text-5xl font-bold tracking-tight mb-4 leading-tight">76 Washington St,<br/>Brighton.</h1>
     <OpenNowBadge />
 
-    <img src="/photos/storefront.jpg" alt="Storefront of The Found Sock Laundromat at 76 Washington St, Brighton MA" class="w-full aspect-[3/2] object-cover rounded-2xl mt-8 shadow-sm" loading="eager" decoding="async" width="1600" height="1067" />
+    <Picture src={storefront} formats={['avif', 'webp']} widths={[400, 800, 1200]} sizes="(max-width: 768px) 100vw, 768px" alt="Storefront of The Found Sock Laundromat at 76 Washington St, Brighton MA" loading="eager" fetchpriority="high" class="w-full aspect-[3/2] object-cover rounded-2xl mt-8 shadow-sm" />
 
     <div class="grid md:grid-cols-2 gap-6 mt-10">
       <div class="bg-cream rounded-2xl p-6">

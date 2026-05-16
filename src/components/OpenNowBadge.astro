@@ -50,6 +50,27 @@ const status = getOpenStatus();
         }
       });
     };
-    setInterval(refresh, 60_000);
+    // Only poll while the page is visible. Pausing the interval when hidden
+    // (and refreshing once on pageshow) preserves bfcache eligibility and
+    // saves battery on backgrounded tabs.
+    let timer: number | undefined;
+    const start = () => {
+      if (timer === undefined) {
+        timer = window.setInterval(refresh, 60_000);
+      }
+    };
+    const stop = () => {
+      if (timer !== undefined) {
+        window.clearInterval(timer);
+        timer = undefined;
+      }
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') { refresh(); start(); } else { stop(); }
+    });
+    window.addEventListener('pageshow', () => { refresh(); start(); });
+    window.addEventListener('pagehide', stop);
+    refresh();
+    start();
   })();
 </script>

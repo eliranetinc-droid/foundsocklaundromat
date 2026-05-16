@@ -1,27 +1,30 @@
 ---
+import { Picture } from 'astro:assets';
 import Layout from '../components/Layout.astro';
 import PriceTable from '../components/PriceTable.astro';
 import LocationBlock from '../components/LocationBlock.astro';
 import { getPricing } from '../lib/business';
-import { generateBreadcrumbSchema } from '../lib/schema';
+import { generateBreadcrumbSchema, generateOfferCatalogSchema } from '../lib/schema';
+import machines from '../assets/photos/machines.jpg';
 
 const pricing = getPricing();
 const breadcrumbs = generateBreadcrumbSchema([
   { name: 'Home', url: 'https://www.foundsocklaundromat.com/' },
   { name: 'Pricing', url: 'https://www.foundsocklaundromat.com/pricing/' },
 ]);
+const offerCatalog = generateOfferCatalogSchema();
 ---
 <Layout
-  title="Laundromat Prices in Brighton, MA — From $6 a Wash"
-  description="Transparent pricing for self-service washers ($6.00–$7.75) and dryers ($0.50/4min). Card, Apple Pay, and loyalty card accepted. No coins required."
-  extraSchemas={[breadcrumbs]}
+  title="Laundromat Prices Brighton MA — From $6 a Wash"
+  description="Self-service washer ($6.00–$7.75) and dryer ($0.50/4min) pricing. Card, Apple Pay, Google Pay, and loyalty card accepted."
+  extraSchemas={[breadcrumbs, offerCatalog]}
 >
   <section class="max-w-3xl mx-auto px-5 py-14 md:py-20">
     <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">Pricing</p>
     <h1 class="text-5xl font-bold tracking-tight mb-3 leading-tight">From $6 a wash.</h1>
     <p class="text-lg opacity-70 mb-8 max-w-xl">Pay by card, Apple Pay, Google Pay, or load cash onto a loyalty card at our touchscreen kiosk.</p>
 
-    <img src="/photos/machines.jpg" alt="LG front-load 25 lb commercial washers with FasCard payment readers" class="w-full aspect-[16/10] object-cover rounded-2xl shadow-sm mb-10" loading="eager" decoding="async" width="1600" height="1000" />
+    <Picture src={machines} formats={['avif', 'webp']} widths={[400, 800, 1200]} sizes="(max-width: 768px) 100vw, 768px" alt="LG front-load 30 lb commercial washers with FasCard payment readers" loading="eager" fetchpriority="high" class="w-full aspect-[16/10] object-cover rounded-2xl shadow-sm mb-10" />
 
     <h2 class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-4">Washers</h2>
     <PriceTable />

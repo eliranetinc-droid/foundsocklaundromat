@@ -1,6 +1,8 @@
 ---
+import { Picture } from 'astro:assets';
 import OpenNowBadge from './OpenNowBadge.astro';
 import { getBusiness, formatAddress } from '../lib/business';
+import storefront from '../assets/photos/storefront.jpg';
 const b = getBusiness();
 ---
 <section class="bg-gradient-to-br from-brand-blue-darker via-brand-blue-deep to-brand-blue text-white relative overflow-hidden">
@@ -32,7 +34,7 @@ const b = getBusiness();
 
       <div class="hidden md:flex items-center justify-center">
         <div class="bg-white p-3 pb-4 rounded-sm shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] rotate-2 max-w-md transition-transform hover:rotate-1 hover:scale-[1.02]">
-          <img src="/photos/storefront.jpg" alt="Storefront of The Found Sock Laundromat at 76 Washington St, Brighton MA" width="800" height="533" loading="eager" decoding="async" fetchpriority="high" class="w-full aspect-[3/2] object-cover" />
+          <Picture src={storefront} formats={['avif', 'webp']} widths={[400, 600, 800, 1200]} sizes="(max-width: 768px) 0px, 50vw" alt="Storefront of The Found Sock Laundromat at 76 Washington St, Brighton MA" loading="eager" fetchpriority="high" class="w-full aspect-[3/2] object-cover" />
           <p class="text-brand-blue-darker text-center mt-3 text-sm font-serif italic">76 Washington St · Brighton</p>
         </div>
       </div>

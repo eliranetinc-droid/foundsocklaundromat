@@ -1,4 +1,5 @@
 ---
+import { Picture, type ImageMetadata } from 'astro:assets';
 import Layout from '../components/Layout.astro';
 import LocationBlock from '../components/LocationBlock.astro';
 import { generateBreadcrumbSchema } from '../lib/schema';
@@ -8,7 +9,24 @@ const breadcrumbs = generateBreadcrumbSchema([
   { name: 'Gallery', url: 'https://www.foundsocklaundromat.com/gallery/' },
 ]);
 
-import photos from '../data/gallery.json';
+import metadata from '../data/gallery.json';
+
+// Glob all 24 gallery images so astro:assets can process them.
+const imageModules = import.meta.glob<{ default: ImageMetadata }>('../assets/photos/gallery/*.jpg', { eager: true });
+const images: Record<string, ImageMetadata> = {};
+for (const [path, mod] of Object.entries(imageModules)) {
+  const filename = path.split('/').pop()!; // e.g. "01.jpg"
+  images[filename] = mod.default;
+}
+
+// Match each gallery.json entry to its imported asset.
+const photos = metadata
+  .map((m) => {
+    const filename = m.src.split('/').pop()!;
+    const img = images[filename];
+    return img ? { img, alt: m.alt } : null;
+  })
+  .filter((x): x is { img: ImageMetadata; alt: string } => x !== null);
 ---
 <Layout
   title="Photo Gallery · The Found Sock Laundromat, Brighton MA"
@@ -21,7 +39,7 @@ import photos from '../data/gallery.json';
     <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
       {photos.map((p, i) => (
         <div class="aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-blue-200 to-brand-blue">
-          <img src={p.src} alt={p.alt} loading={i < 3 ? 'eager' : 'lazy'} class="w-full h-full object-cover" onerror="this.style.display='none'" />
+          <Picture src={p.img} formats={['avif', 'webp']} widths={[300, 500, 700]} sizes="(max-width: 768px) 50vw, 33vw" alt={p.alt} loading={i < 2 ? 'eager' : 'lazy'} class="w-full h-full object-cover" />
         </div>
       ))}
     </div>

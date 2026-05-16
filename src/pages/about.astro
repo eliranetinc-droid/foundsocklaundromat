@@ -1,7 +1,9 @@
 ---
+import { Picture } from 'astro:assets';
 import Layout from '../components/Layout.astro';
 import LocationBlock from '../components/LocationBlock.astro';
 import { generateBreadcrumbSchema } from '../lib/schema';
+import interior from '../assets/photos/interior.jpg';
 
 const breadcrumbs = generateBreadcrumbSchema([
   { name: 'Home', url: 'https://www.foundsocklaundromat.com/' },
@@ -10,20 +12,39 @@ const breadcrumbs = generateBreadcrumbSchema([
 ---
 <Layout
   title="About The Found Sock Laundromat — Locally Owned, Brighton MA"
-  description="A locally owned, family-run laundromat in Brighton, MA. Brand-new machines, daily cleaning, modern payment, and a friendly neighborhood feel."
+  description="A locally owned, family-run self-service laundromat in Brighton, MA — open since 2015. Modern machines, daily cleaning, and a neighborhood feel."
   extraSchemas={[breadcrumbs]}
 >
   <section class="max-w-2xl mx-auto px-5 py-16 md:py-24">
     <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">About us</p>
     <h1 class="text-5xl font-bold tracking-tight mb-6 leading-tight">A laundromat that<br/>actually feels clean.</h1>
 
-    <img src="/photos/interior.jpg" alt="Inside The Found Sock Laundromat — folding tables and seating area" class="w-full aspect-[3/2] object-cover rounded-2xl shadow-sm mb-10" loading="eager" decoding="async" width="1600" height="1067" />
+    <Picture src={interior} formats={['avif', 'webp']} widths={[400, 800, 1200]} sizes="(max-width: 768px) 100vw, 640px" alt="Inside The Found Sock Laundromat — folding tables and seating area" loading="eager" fetchpriority="high" class="w-full aspect-[3/2] object-cover rounded-2xl shadow-sm mb-10" />
 
     <div class="prose prose-lg text-brand-blue-darker space-y-5 text-base leading-relaxed opacity-85">
-      <p>The Found Sock Laundromat is a locally owned, self-service laundry in Brighton, MA. We've been here since 2015.</p>
+      <p><strong>The Found Sock Laundromat is a locally owned, self-service laundry in Brighton, MA — open since 2015.</strong> We sit at 76 Washington Street, a short walk from Allston, Brighton Center, Cleveland Circle, Oak Square, and Brookline Village, and a popular spot with Boston College and Boston University students who need late hours and family-size washers.</p>
+
       <p>We built this place around three things that matter to people doing laundry: <strong>clean machines, modern payment, and zero hassle.</strong></p>
-      <p>That's why our floors are spotless, why every washer and dryer is brand new, why you can pay with your phone or load a loyalty card with cash, and why we don't make you stand around watching a wash — the FasCard app lets you start machines from your couch and get notified when they're done.</p>
-      <p>Stop by. We think you'll feel the difference.</p>
+
+      <p>That's why our floors are spotless, why every washer and dryer is brand new, why you can pay with your phone or load a loyalty card with cash, and why we don't make you stand around watching a wash — the <a href="/app/">FasCard app</a> lets you start machines from your couch and get notified when they're done.</p>
+
+      <h2 class="text-2xl font-bold mt-10 mb-3 text-brand-blue-darker">What's changed since 2015</h2>
+      <p>When we opened, the laundromat was coin-operated like most in Boston. Over the years we've upgraded everything customers actually touch:</p>
+      <ul>
+        <li><strong>2018</strong> — switched to card and contactless payment, removed all coin slots.</li>
+        <li><strong>2020</strong> — added the loyalty card with 10% cashback that never expires.</li>
+        <li><strong>2022</strong> — installed the FasCard app integration so you can start cycles from your phone.</li>
+        <li><strong>2024</strong> — replaced every washer and dryer with the current Wascomat, LG, and Electrolux machines (up to 45 lb capacity).</li>
+        <li><strong>2026</strong> — rebuilt this website from scratch to load fast on a phone.</li>
+      </ul>
+
+      <h2 class="text-2xl font-bold mt-10 mb-3 text-brand-blue-darker">Self-service only</h2>
+      <p>We don't offer wash-and-fold or drop-off service. Every customer washes their own clothes — which means you control how it's done, the pricing stays low, and turnaround is instant (no waiting for someone else to get to your laundry). The trade-off works for most people.</p>
+
+      <h2 class="text-2xl font-bold mt-10 mb-3 text-brand-blue-darker">How to get in touch</h2>
+      <p>For machine issues, refunds, or questions, the fastest path is our <a href="/report-issue/">report-an-issue form</a> — it lands as a ticket and we usually reply within a few hours during open hours. For general questions, the <a href="/contact/">contact form</a> works too.</p>
+
+      <p class="mt-8">Stop by. We think you'll feel the difference.</p>
     </div>
   </section>
   <LocationBlock />

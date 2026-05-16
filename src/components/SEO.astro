@@ -1,5 +1,5 @@
 ---
-import { generateLocalBusinessSchema } from '../lib/schema';
+import { generateLocalBusinessSchema, generateOrganizationSchema, generateWebSiteSchema } from '../lib/schema';
 import { getBusiness } from '../lib/business';
 
 export interface Props {
@@ -14,9 +14,16 @@ export interface Props {
 const { title, description, canonical, ogImage, noindex, extraSchemas = [] } = Astro.props;
 const b = getBusiness();
 const fullTitle = title.includes(b.shortName) ? title : `${title} | ${b.shortName}`;
-const ogImg = ogImage ?? `${b.url}/photos/og/default.jpg`;
-const localBiz = generateLocalBusinessSchema();
-const schemas = [localBiz, ...extraSchemas];
+const ogImg = ogImage
+  ? (ogImage.startsWith('http') ? ogImage : `${b.url}${ogImage}`)
+  : `${b.url}/photos/og/default.jpg`;
+// Always include the connected entity graph: Organization + WebSite + LocalBusiness
+const schemas = [
+  generateOrganizationSchema(),
+  generateWebSiteSchema(),
+  generateLocalBusinessSchema(),
+  ...extraSchemas,
+];
 ---
 <title>{fullTitle}</title>
 <meta name="description" content={description} />

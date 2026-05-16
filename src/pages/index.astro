@@ -14,7 +14,7 @@ const breadcrumbs = generateBreadcrumbSchema([
 ---
 <Layout
   title="Laundromat in Brighton, MA · Open 6am–11pm Daily"
-  description="Brighton's cleanest self-service laundromat. Brand-new card-operated machines, no quarters, free Wi-Fi. Start machines from your phone. 76 Washington St, Brighton MA — open 7 days."
+  description="Brighton self-service laundromat: card machines, no quarters, Apple Pay, free Wi-Fi. Start cycles from your phone. 76 Washington St — open 6 AM–11 PM daily."
   extraSchemas={[breadcrumbs]}
 >
   <Hero />
@@ -25,6 +25,23 @@ const breadcrumbs = generateBreadcrumbSchema([
     <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">Transparent pricing</p>
     <h2 class="text-4xl font-bold tracking-tight mb-6 leading-tight">From $6<br/>per wash<span class="inline-block w-2.5 h-2.5 bg-brand-red rounded-full ml-1 -translate-y-1"></span></h2>
     <PriceTable teaser={true} />
+  </section>
+
+  <section class="bg-cream border-y border-line">
+    <div class="max-w-3xl mx-auto px-5 py-12">
+      <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-3">Service area</p>
+      <h2 class="text-3xl font-bold tracking-tight mb-4 leading-tight">Serving Brighton, Allston, Brookline, and BC + BU.</h2>
+      <p class="text-base opacity-75 leading-relaxed mb-6 max-w-2xl">
+        We're the closest card-operated laundromat to <a href="/area/allston/" class="text-brand-blue font-semibold hover:text-brand-red">Allston</a>, <a href="/area/brighton-center/" class="text-brand-blue font-semibold hover:text-brand-red">Brighton Center</a>, <a href="/area/cleveland-circle/" class="text-brand-blue font-semibold hover:text-brand-red">Cleveland Circle</a>, <a href="/area/brookline-village/" class="text-brand-blue font-semibold hover:text-brand-red">Brookline Village</a>, and <a href="/area/oak-square/" class="text-brand-blue font-semibold hover:text-brand-red">Oak Square</a> — and a popular spot with the Boston College and Boston University student communities thanks to our late hours and family-size washers.
+      </p>
+      <ul class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm font-semibold">
+        <li><a href="/area/allston/" class="inline-block text-brand-blue hover:text-brand-red">→ Allston laundromat</a></li>
+        <li><a href="/area/brighton-center/" class="inline-block text-brand-blue hover:text-brand-red">→ Brighton Center laundromat</a></li>
+        <li><a href="/area/brookline-village/" class="inline-block text-brand-blue hover:text-brand-red">→ Brookline Village laundromat</a></li>
+        <li><a href="/area/cleveland-circle/" class="inline-block text-brand-blue hover:text-brand-red">→ Cleveland Circle laundromat</a></li>
+        <li><a href="/area/oak-square/" class="inline-block text-brand-blue hover:text-brand-red">→ Oak Square laundromat</a></li>
+      </ul>
+    </div>
   </section>
 
   <ReviewsBlock />

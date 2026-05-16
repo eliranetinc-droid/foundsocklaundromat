@@ -2,12 +2,17 @@
 import Layout from '../../components/Layout.astro';
 import LocationBlock from '../../components/LocationBlock.astro';
 import { getCollection } from 'astro:content';
-import { generateBreadcrumbSchema } from '../../lib/schema';
+import { generateBreadcrumbSchema, generateBlogListSchema } from '../../lib/schema';
 
 const allPosts = (await getCollection('blog', ({ data }) => !data.draft))
   .sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime());
 
-const [featured, ...rest] = allPosts;
+// Featured slot = most-recent post that isn't tagged 'news' (news posts are short
+// notes, not the strongest hook for a first-time visitor). The 'news' post still
+// shows in the grid below.
+const featuredIndex = allPosts.findIndex(p => !p.data.tags.includes('news'));
+const featured = featuredIndex >= 0 ? allPosts[featuredIndex] : allPosts[0];
+const rest = allPosts.filter((_, i) => i !== featuredIndex);
 
 function readingTime(body: string | undefined): number {
   if (!body) return 4;
@@ -25,11 +30,20 @@ const breadcrumbs = generateBreadcrumbSchema([
   { name: 'Home', url: 'https://www.foundsocklaundromat.com/' },
   { name: 'Blog', url: 'https://www.foundsocklaundromat.com/blog/' },
 ]);
+
+const blogList = generateBlogListSchema(
+  allPosts.map(p => ({
+    title: p.data.title,
+    slug: p.slug ?? p.id,
+    description: p.data.description,
+    datePublished: p.data.publishedAt.toISOString().slice(0, 10),
+  })),
+);
 ---
 <Layout
   title="Laundry Tips & Guides · The Found Sock Laundromat Blog"
   description="Practical laundry guides written by a Brighton laundromat — how to wash specific items, fix common problems, and get the most out of every load."
-  extraSchemas={[breadcrumbs]}
+  extraSchemas={[breadcrumbs, blogList]}
 >
   <section class="max-w-6xl mx-auto px-5 pt-14 md:pt-20 pb-8">
     <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-4">Blog</p>

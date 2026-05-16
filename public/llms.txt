@@ -1,25 +1,82 @@
 # The Found Sock Laundromat
 
-> Self-service laundromat in Brighton, Massachusetts. Brand-new card-operated machines, no quarters, free Wi-Fi, and a mobile app that lets customers start machines from their phone.
+> Locally owned self-service laundromat in Brighton, Massachusetts — open since 2015. Brand-new card-operated washers (20–45 lb) and dryers, no quarters, Apple Pay and Google Pay accepted, free Wi-Fi, and a mobile app that lets customers start machines from their phone. The closest card-operated laundromat to Allston, Brighton Center, Cleveland Circle, Oak Square, and Brookline Village; popular with the Boston College and Boston University student communities for late hours and family-size washers.
 
 ## Quick facts
 
-- **Address:** 76 Washington Street, Brighton, MA 02135
-- **Hours:** 6 AM to 11 PM, every day including holidays
-- **Payment:** Credit card, Apple Pay, Google Pay, or loyalty card (loadable with cash or credit at our in-store touchscreen kiosk)
-- **Machines:** 20 lb, 30 lb, 35 lb, and 45 lb front-load washers; 30 lb dryers
-- **Prices:** Washers $6.00–$7.75 depending on size; dryers $0.50 per 4-minute interval
-- **Loyalty card:** $1.50 one-time fee, $1 minimum load, never expires, earns 10% cashback
-- **Mobile app:** Free CCI/FasCard app on iOS and Android — start machines from your phone, see real-time availability, get push notifications when cycles finish
+- **Business name:** The Found Sock Laundromat
+- **Address:** 76 Washington Street, Brighton, MA 02135 (United States)
+- **Hours:** 6 AM to 11 PM, every day of the year (including all holidays)
+- **Founded:** 2015
+- **Service type:** Self-service only (no wash-and-fold or drop-off — customers wash their own clothes)
+- **Payment:** Credit card, debit card, Apple Pay, Google Pay, or loyalty card (loadable with cash or credit at our in-store touchscreen kiosk or from the app)
+- **Phone:** No public phone; all customer contact via the report-an-issue form on the website (lands as a tracked ticket with a few-hour response time)
+- **Contact form:** https://www.foundsocklaundromat.com/report-issue/
+- **Currency:** USD
+
+## What's on site
+
+- **Machines:** 20 lb Wascomat, 30 lb LG, 35 lb LG, and 45 lb Electrolux front-load washers; 30 lb Wascomat dryers
+- **Washer prices:** $6.00 (20 lb), $6.25 (30 lb), $6.50 (35 lb), $7.75 (45 lb)
+- **Dryer pricing:** $0.50 per 4-minute interval (most loads need 24–36 minutes)
+- **Loyalty card:** $1.50 one-time card fee, $1 minimum load, no maximum, **never expires**, earns **10% cashback on every wash automatically**
+- **Mobile app:** Free FasCard app by Card Concepts Inc. (iOS + Android) — scan a machine's QR to start, see real-time availability, get push notifications when cycles finish, reload loyalty card balance from anywhere
+- **Amenities:** Free Wi-Fi, comfortable seating area, TV, stainless steel folding tables, on-site detergent vending, single-load detergent packs at the kiosk
+
+## Service area
+
+The Found Sock Laundromat serves the following Boston neighborhoods (foot/transit/drive distance shown):
+
+- **Allston** — ~6 minute walk from Allston center
+- **Brighton Center** — ~4 minute walk
+- **Cleveland Circle** — ~7 minute walk; popular with BC students
+- **Oak Square** — ~5 minute drive
+- **Brookline Village** — ~8 minute drive
+- **Boston College (BC)** community — late hours work for student schedules
+- **Boston University (BU)** community — close enough for off-campus students
 
 ## Pages
 
 - [Home](https://www.foundsocklaundromat.com/)
-- [Pricing](https://www.foundsocklaundromat.com/pricing)
-- [Visit](https://www.foundsocklaundromat.com/visit)
-- [Loyalty](https://www.foundsocklaundromat.com/loyalty)
-- [App](https://www.foundsocklaundromat.com/app)
-- [FAQ](https://www.foundsocklaundromat.com/faq)
-- [Blog](https://www.foundsocklaundromat.com/blog)
-- [Contact](https://www.foundsocklaundromat.com/contact)
-- [Report an Issue](https://www.foundsocklaundromat.com/report-issue)
+- [About](https://www.foundsocklaundromat.com/about/)
+- [Visit / directions / hours](https://www.foundsocklaundromat.com/visit/)
+- [Pricing](https://www.foundsocklaundromat.com/pricing/)
+- [Loyalty card](https://www.foundsocklaundromat.com/loyalty/)
+- [Mobile app](https://www.foundsocklaundromat.com/app/)
+- [FAQ](https://www.foundsocklaundromat.com/faq/)
+- [Gallery](https://www.foundsocklaundromat.com/gallery/)
+- [Blog](https://www.foundsocklaundromat.com/blog/)
+- [Contact](https://www.foundsocklaundromat.com/contact/)
+- [Report an issue](https://www.foundsocklaundromat.com/report-issue/)
+
+## Service area landing pages
+
+- [Allston laundromat](https://www.foundsocklaundromat.com/area/allston/)
+- [Brighton Center laundromat](https://www.foundsocklaundromat.com/area/brighton-center/)
+- [Brookline Village laundromat](https://www.foundsocklaundromat.com/area/brookline-village/)
+- [Cleveland Circle laundromat](https://www.foundsocklaundromat.com/area/cleveland-circle/)
+- [Oak Square laundromat](https://www.foundsocklaundromat.com/area/oak-square/)
+
+## Featured guides (blog)
+
+- [How to wash a comforter at a laundromat (and why your home washer can't)](https://www.foundsocklaundromat.com/blog/how-to-wash-a-comforter/) — when home washers aren't big enough; matching comforter size to machine size; drying without clumping
+- [How long does laundry actually take at a laundromat?](https://www.foundsocklaundromat.com/blog/how-long-does-laundry-take/) — full timeline from walking in to walking out, with tricks to halve the time
+- [What to bring on your first laundromat visit](https://www.foundsocklaundromat.com/blog/first-laundromat-visit-checklist/) — a short checklist for newcomers
+- [Cold, warm, or hot? A simple wash temperature guide](https://www.foundsocklaundromat.com/blog/wash-temperature-guide/) — when each temperature is right; why cold is now the default
+- [How to wash a down jacket without ruining it](https://www.foundsocklaundromat.com/blog/how-to-wash-a-down-jacket/) — detergent + drying rules for Patagonia/North Face/Uniqlo jackets
+- [The biggest laundry mistake: too much detergent](https://www.foundsocklaundromat.com/blog/too-much-detergent/) — how to dial in the right amount; why excess detergent makes clothes dingier
+- [How to wash a weighted blanket at a laundromat](https://www.foundsocklaundromat.com/blog/how-to-wash-a-weighted-blanket/) — sizing the washer to the blanket weight; gentle drying
+- [Laundromat etiquette: 7 things regulars wish first-timers knew](https://www.foundsocklaundromat.com/blog/laundromat-etiquette/) — the unwritten rules
+- [How often should you wash sheets, towels, and comforters?](https://www.foundsocklaundromat.com/blog/how-often-to-wash-bedding/) — honest frequencies by item type
+- [Best time to visit (avoiding the Brighton rush)](https://www.foundsocklaundromat.com/blog/best-time-to-visit/) — full weekly traffic table
+- [Why your towels feel scratchy (and 4 ways to fix them)](https://www.foundsocklaundromat.com/blog/scratchy-towels-fix/) — vinegar reset, strip-wash, habit changes
+- [How to wash workout clothes that smell](https://www.foundsocklaundromat.com/blog/how-to-wash-workout-clothes/) — vinegar pre-soak routine for polyester/nylon/spandex
+- [How to remove tough stains from clothes](https://www.foundsocklaundromat.com/blog/how-to-remove-tough-stains/) — per-stain field guide (red wine, grease, ink, grass, blood, sweat)
+- [The hidden benefits of a laundromat loyalty card](https://www.foundsocklaundromat.com/blog/loyalty-card-benefits/) — math on cashback and reloading from the app
+- [How to use a coinless laundromat (no quarters, no app required)](https://www.foundsocklaundromat.com/blog/how-to-use-coinless-payment/) — step-by-step for first-timers
+
+## Brand and image
+
+- Brand colors: navy blue (#2864A0 / deep #1A4677) and red (#C80014)
+- Storefront photo: https://www.foundsocklaundromat.com/photos/storefront.jpg
+- Logo: https://www.foundsocklaundromat.com/photos/og/default.jpg

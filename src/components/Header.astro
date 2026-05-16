@@ -8,29 +8,53 @@ const navItems = [
   { href: '/faq/', label: 'FAQ' },
   { href: '/report-issue/', label: 'Help' },
 ];
+
+const currentPath = Astro.url.pathname;
+function isActive(href: string): boolean {
+  // exact match for home; for everything else, current path starts with the nav href
+  if (href === '/') return currentPath === '/';
+  return currentPath === href || currentPath.startsWith(href);
+}
 ---
 <header class="border-b border-line">
   <div class="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between">
-    <a href="/" class="flex items-center" aria-label="Found Sock home">
+    <a href="/" class="flex items-center" aria-label="Found Sock home" aria-current={currentPath === '/' ? 'page' : undefined}>
       <img src="/brand/logo-horizontal.png" alt="The Found Sock Laundromat" width="160" height="29" />
     </a>
-    <nav class="hidden md:flex gap-7 text-sm font-medium">
+    <nav class="hidden md:flex gap-7 text-sm font-medium" aria-label="Primary">
       {navItems.map(item => (
-        <a href={item.href} class="text-brand-blue-darker hover:text-brand-red transition-colors">{item.label}</a>
+        <a href={item.href}
+           aria-current={isActive(item.href) ? 'page' : undefined}
+           class:list={['text-brand-blue-darker hover:text-brand-red transition-colors', isActive(item.href) && 'text-brand-red font-semibold']}>
+          {item.label}
+        </a>
       ))}
     </nav>
-    <button class="md:hidden p-2 border border-line rounded-lg" aria-label="Menu" id="mobile-menu-toggle">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    <button class="md:hidden p-2 border border-line rounded-lg"
+            aria-label="Open menu"
+            aria-expanded="false"
+            aria-controls="mobile-menu"
+            id="mobile-menu-toggle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
   </div>
-  <nav id="mobile-menu" class="hidden md:hidden border-t border-line">
+  <nav id="mobile-menu" class="hidden md:hidden border-t border-line" aria-label="Mobile">
     {navItems.map(item => (
-      <a href={item.href} class="block px-5 py-3 border-b border-line text-brand-blue-darker">{item.label}</a>
+      <a href={item.href}
+         aria-current={isActive(item.href) ? 'page' : undefined}
+         class:list={['block px-5 py-3 border-b border-line text-brand-blue-darker', isActive(item.href) && 'text-brand-red font-semibold']}>
+        {item.label}
+      </a>
     ))}
   </nav>
 </header>
 <script>
   const toggle = document.getElementById('mobile-menu-toggle');
   const menu = document.getElementById('mobile-menu');
-  toggle?.addEventListener('click', () => menu?.classList.toggle('hidden'));
+  toggle?.addEventListener('click', () => {
+    const wasHidden = menu?.classList.toggle('hidden');
+    const isOpen = wasHidden === false;
+    toggle.setAttribute('aria-expanded', String(isOpen));
+    toggle.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
+  });
 </script>
