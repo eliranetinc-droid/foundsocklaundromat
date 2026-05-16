@@ -83,7 +83,7 @@ export function generateArticleSchema(article: ArticleInput) {
     '@type': 'Article',
     headline: article.title,
     description: article.description,
-    url: `${baseUrl}/blog/${article.slug}`,
+    url: `${baseUrl}/blog/${article.slug}/`,
     datePublished: article.datePublished,
     author: {
       '@type': 'Organization',

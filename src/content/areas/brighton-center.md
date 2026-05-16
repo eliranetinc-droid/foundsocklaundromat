@@ -10,7 +10,7 @@ distanceMin: 4
 If you live in Brighton Center, you've probably walked past us on Washington Street. We're **4 minutes from Brighton Center** by foot, just down the road past the Allston border.
 
 ### What Brighton Center neighbors love
-- **Walk over, drop off, walk home.** Or wait with free Wi-Fi and a TV.
+- **Walk over, start a load, walk home.** Use the FasCard app to get notified when it's done — or wait with free Wi-Fi and a TV.
 - **Cash-friendly via our kiosk.** Don't want to use your credit card? Load a loyalty card with cash inside, then tap at any machine.
 - **Family-size washers.** Wash everything in one shot instead of three smaller cycles.
 - **Always open.** 6 AM to 11 PM every day, including holidays.

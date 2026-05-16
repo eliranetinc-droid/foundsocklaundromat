@@ -15,7 +15,7 @@ const { Content } = await render(area);
 
 const breadcrumbs = generateBreadcrumbSchema([
   { name: 'Home', url: 'https://www.foundsocklaundromat.com/' },
-  { name: area.data.name, url: `https://www.foundsocklaundromat.com/area/${area.data.slug}` },
+  { name: area.data.name, url: `https://www.foundsocklaundromat.com/area/${area.data.slug}/` },
 ]);
 ---
 <Layout

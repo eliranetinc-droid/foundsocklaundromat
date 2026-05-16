@@ -52,7 +52,7 @@ When in doubt, size up. A washer that's 80% full cleans better than one stuffed 
 Tap a card / phone / loyalty card on the FasCard reader. Pick your wash temperature on the washer's own buttons (cold/warm/hot). Press start.
 
 ### 5. Wait or come back later
-Most washes are 25–35 minutes. We have free Wi-Fi, comfortable seating, and a TV — or you can leave and come back. **Better yet, download the [FasCard app](/app)** — it'll send you a push notification the moment your cycle finishes.
+Most washes are 25–35 minutes. We have free Wi-Fi, comfortable seating, and a TV — or you can leave and come back. **Better yet, download the [FasCard app](/app/)** — it'll send you a push notification the moment your cycle finishes.
 
 ### 6. Move clothes to a dryer
 Dryers are on the opposite wall. Pay the same way ($0.50 buys 4 minutes — most loads need 24–36 minutes). The app can start a dryer too — just scan the QR code on the reader.
@@ -80,5 +80,5 @@ A: No. The reader pre-authorizes the charge but won't actually bill until the cy
 **Q: Can I use a foreign credit card?**
 A: Yes, as long as it's a chip card with contactless tap. We've had visitors from all over.
 
-→ [See full pricing](/pricing)
-→ [Or how the loyalty card works](/loyalty)
+→ [See full pricing](/pricing/)
+→ [Or how the loyalty card works](/loyalty/)

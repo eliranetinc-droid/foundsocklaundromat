@@ -40,7 +40,7 @@ A few tricks regulars use:
 
 1. **Run two washers at once.** If you have separate piles (whites, colors, towels), start them both at the same time. They'll finish together and you'll only do one trip to the dryer.
 
-2. **Skip the trip back.** Download the [free FasCard app](/app). It sends you a push notification when your wash or dry cycle finishes. So you can run errands instead of sitting around.
+2. **Skip the trip back.** Download the [free FasCard app](/app/). It sends you a push notification when your wash or dry cycle finishes. So you can run errands instead of sitting around.
 
 3. **Pre-sort at home.** Sort whites/colors/towels into separate bags before you leave. Saves 5 minutes of fussing in the laundromat.
 
@@ -65,4 +65,4 @@ For a typical week's worth of laundry — 1 load mixed clothes, 1 load towels:
 
 **Total of your day spent on laundry: about 1 hour**, including travel.
 
-→ [See washer sizes](/pricing) → [Or grab the FasCard app first](/app)
+→ [See washer sizes](/pricing/) → [Or grab the FasCard app first](/app/)

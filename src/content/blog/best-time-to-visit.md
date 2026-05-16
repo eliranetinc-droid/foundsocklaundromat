@@ -63,7 +63,7 @@ A few patterns specific to Brighton:
 
 Two ways:
 
-**1. Use the [FasCard app](/app) before you leave home.**
+**1. Use the [FasCard app](/app/) before you leave home.**
 The app shows you which machines are currently in use and which are available. If you see all 8 of our 30 lb washers running, wait 30 minutes and check again. Saves a wasted trip.
 
 **2. Run two washers in parallel.**
@@ -73,5 +73,5 @@ If you have multiple loads, start two machines at the same time when there's spa
 
 If laundry day always feels stressful — there's a 90% chance it's because you've been doing it during peak Brighton hours. Try shifting once to a Tuesday morning or a Wednesday evening. You'll wonder why you didn't do it that way the whole time.
 
-→ [How long laundry takes start to finish](/blog/how-long-does-laundry-take)
-→ [How to find us](/visit)
+→ [How long laundry takes start to finish](/blog/how-long-does-laundry-take/)
+→ [How to find us](/visit/)

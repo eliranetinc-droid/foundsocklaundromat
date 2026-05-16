@@ -7,7 +7,7 @@ import { generateBreadcrumbSchema, generateFaqSchema } from '../lib/schema';
 
 const breadcrumbs = generateBreadcrumbSchema([
   { name: 'Home', url: 'https://www.foundsocklaundromat.com/' },
-  { name: 'FAQ', url: 'https://www.foundsocklaundromat.com/faq' },
+  { name: 'FAQ', url: 'https://www.foundsocklaundromat.com/faq/' },
 ]);
 const faqSchema = generateFaqSchema(faqs.map(f => ({ q: f.q, a: f.a })));
 ---

@@ -86,5 +86,5 @@ A small kit of these will handle 95% of stains.
 
 For really set-in stains or large items (comforters, rugs, jackets), our **45-pound front-load washers** give the agitation and water volume you need. Pre-treat at home with whatever's appropriate from the list above, then bring it in.
 
-→ [See washer sizes and prices](/pricing)
-→ [Or see what visiting us looks like](/visit)
+→ [See washer sizes and prices](/pricing/)
+→ [Or see what visiting us looks like](/visit/)

@@ -46,8 +46,8 @@ const articleSchema = generateArticleSchema({
 });
 const breadcrumbs = generateBreadcrumbSchema([
   { name: 'Home', url: 'https://www.foundsocklaundromat.com/' },
-  { name: 'Blog', url: 'https://www.foundsocklaundromat.com/blog' },
-  { name: post.data.title, url: `https://www.foundsocklaundromat.com/blog/${slug}` },
+  { name: 'Blog', url: 'https://www.foundsocklaundromat.com/blog/' },
+  { name: post.data.title, url: `https://www.foundsocklaundromat.com/blog/${slug}/` },
 ]);
 
 const minutes = readingTime(post.body);
@@ -61,7 +61,7 @@ const minutes = readingTime(post.body);
   <article>
     <header class="max-w-3xl mx-auto px-5 pt-12 md:pt-20 pb-10">
       <p class="text-xs uppercase tracking-[0.25em] text-brand-blue font-bold mb-5">
-        <a href="/blog" class="hover:text-brand-red transition-colors">← All posts</a>
+        <a href="/blog/" class="hover:text-brand-red transition-colors">← All posts</a>
       </p>
       <div class="flex flex-wrap gap-1.5 mb-5">
         {post.data.tags.map(tag => (

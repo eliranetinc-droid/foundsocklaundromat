@@ -59,7 +59,7 @@ Once you've reset your towels, **don't go back to the habits that caused the pro
 
 The four rules for soft towels long-term:
 
-1. **Use about half the detergent you used to use.** For a normal load, 1.5 tablespoons of liquid is plenty. (More on this in our [too-much-detergent post](/blog/too-much-detergent).)
+1. **Use about half the detergent you used to use.** For a normal load, 1.5 tablespoons of liquid is plenty. (More on this in our [too-much-detergent post](/blog/too-much-detergent/).)
 2. **Skip fabric softener entirely on towels.** It coats the fibers and reduces absorbency. If you love the scent, use it on clothes only.
 3. **Don't use dryer sheets on towels** for the same reason.
 4. **Dry on medium heat, not high.** High heat melts the cotton fibers slightly and makes them brittle.
@@ -74,5 +74,5 @@ If you've done all four fixes and the towels are still rough, they may genuinely
 
 For new towels, **wash them once with vinegar (Fix 1) before first use** to remove the manufacturing finish that makes them feel waxy.
 
-→ [How much detergent to actually use](/blog/too-much-detergent)
-→ [Or our temperature guide](/blog/wash-temperature-guide)
+→ [How much detergent to actually use](/blog/too-much-detergent/)
+→ [Or our temperature guide](/blog/wash-temperature-guide/)

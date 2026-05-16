@@ -14,7 +14,7 @@ Why does that matter? Two reasons. **First**, you don't waste data when you're c
 A few other things we changed:
 - The site now shows **whether we're open right now**, automatically.
 - You'll see our latest Google reviews pulled in live.
-- Every detail about our [pricing](/pricing), the [loyalty card](/loyalty), and the [FasCard app](/app) is one tap away.
+- Every detail about our [pricing](/pricing/), the [loyalty card](/loyalty/), and the [FasCard app](/app/) is one tap away.
 
 That's it. Same friendly neighborhood spot, just on a much better website.
 

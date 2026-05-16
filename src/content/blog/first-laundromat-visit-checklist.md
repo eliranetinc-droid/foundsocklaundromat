@@ -24,7 +24,7 @@ If you want to make the visit faster or more comfortable:
 - **A spare bag for clean clothes** (separates them from the dirty bag/basket)
 - **Headphones or a book** if you plan to wait
 - **A water bottle** — laundromats can be warm
-- **The [FasCard app](/app)** downloaded ahead of time — get push notifications when your laundry's done, so you don't have to wait
+- **The [FasCard app](/app/)** downloaded ahead of time — get push notifications when your laundry's done, so you don't have to wait
 
 ## What you can leave at home
 
@@ -63,7 +63,7 @@ If you have more than 3 bags, run two washers at the same time. Cuts your trip i
 
 Most first-timers tell us the same thing afterward: "That was way easier than I expected." It is.
 
-If anything goes sideways — a machine acts up, you're confused about something — there's a touch screen kiosk at the front, or you can [report an issue here](/report-issue) and we'll respond within a few hours.
+If anything goes sideways — a machine acts up, you're confused about something — there's a touch screen kiosk at the front, or you can [report an issue here](/report-issue/) and we'll respond within a few hours.
 
-→ [Pricing and machine sizes](/pricing)
-→ [How to find us in Brighton](/visit)
+→ [Pricing and machine sizes](/pricing/)
+→ [How to find us in Brighton](/visit/)

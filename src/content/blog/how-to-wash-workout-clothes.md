@@ -75,5 +75,5 @@ Skip these — they're commonly recommended but don't really work:
 
 Even with perfect washing, the same shirt worn for 3 sessions in a row will gradually accumulate smell faster than one worn weekly. **Rotate through 4–5 shirts** instead of always grabbing your favorite.
 
-→ [How much detergent to actually use](/blog/too-much-detergent)
-→ [Why your towels are scratchy](/blog/scratchy-towels-fix)
+→ [How much detergent to actually use](/blog/too-much-detergent/)
+→ [Why your towels are scratchy](/blog/scratchy-towels-fix/)

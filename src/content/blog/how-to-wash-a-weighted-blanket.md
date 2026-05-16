@@ -85,5 +85,5 @@ If it's a kid's weighted blanket or one used during illness, wash sooner.
 
 If your weighted blanket cover is removable — **always remove and wash the cover separately first.** This is the right answer 90% of the time. The inner blanket itself only needs occasional cleaning.
 
-→ [See washer sizes](/pricing)
-→ [Or how to wash a comforter](/blog/how-to-wash-a-comforter)
+→ [See washer sizes](/pricing/)
+→ [Or how to wash a comforter](/blog/how-to-wash-a-comforter/)

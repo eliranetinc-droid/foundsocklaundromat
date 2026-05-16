@@ -75,5 +75,5 @@ Every washer at The Found Sock has three buttons on the front: **Cold / Warm / H
 
 Tap your payment card to start the wash, then tap the temperature button before pressing start. Easy.
 
-→ [See washer sizes and pricing](/pricing)
-→ [Or how to remove stains](/blog/how-to-remove-tough-stains)
+→ [See washer sizes and pricing](/pricing/)
+→ [Or how to remove stains](/blog/how-to-remove-tough-stains/)

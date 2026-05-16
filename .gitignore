@@ -47,3 +47,4 @@ public/photos/gmb-source/
 
 # Drop folder for new owner-supplied photos before processing
 photo-inbox/
+_archive/

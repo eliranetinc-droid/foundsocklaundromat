@@ -22,7 +22,7 @@ Three small things that surprise people:
 
 ## Loading the card from your phone
 
-If you don't want to visit the kiosk to add money, you don't have to. Download the [free FasCard app](/app) and you can:
+If you don't want to visit the kiosk to add money, you don't have to. Download the [free FasCard app](/app/) and you can:
 
 - Reload your card balance from anywhere with a credit card
 - Check your balance any time
@@ -50,5 +50,5 @@ That's about 10 free washes per year, on top of the convenience.
 
 The card is at the kiosk in the front of the store. **Next visit**: tap "Buy a new card" on the touchscreen, pay $1.50 + load any amount you want, and you're set forever.
 
-→ [More on how the kiosk works](/loyalty)
-→ [Or grab the FasCard app first](/app)
+→ [More on how the kiosk works](/loyalty/)
+→ [Or grab the FasCard app first](/app/)

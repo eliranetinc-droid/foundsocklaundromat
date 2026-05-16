@@ -14,7 +14,7 @@ The biggest unwritten rule. **Be back at your washer when it finishes.** Other p
 
 If you can't be back in time, that's fine — just don't expect your laundry to still be in the washer when you return. Someone will move it onto a folding table to free up the machine. That's standard, not rude.
 
-The fix: **download the [FasCard app](/app)** and let it ping you. Now you can leave and come back exactly when needed.
+The fix: **download the [FasCard app](/app/)** and let it ping you. Now you can leave and come back exactly when needed.
 
 ## 2. Don't grab someone else's machine if it's running
 
@@ -44,7 +44,7 @@ A clogged lint screen makes the dryer take 50% longer and is the leading cause o
 
 ## 6. Don't leave detergent or fabric softener spills
 
-If you spill liquid detergent or fabric softener on the floor (it happens — bottles drip), grab a paper towel from the dispenser and wipe it up. If you spilled a lot, mention it to the attendant or send a quick note via the [report-issue page](/report-issue).
+If you spill liquid detergent or fabric softener on the floor (it happens — bottles drip), grab a paper towel from the dispenser and wipe it up. If you spilled a lot, mention it to the attendant or send a quick note via the [report-issue page](/report-issue/).
 
 It's a slipping hazard. Other people will appreciate it.
 
@@ -56,11 +56,11 @@ Laundromats are quiet most of the time. People are reading, working, or just zon
 
 - **Don't move someone's laundry from the dryer until it's been done at least 5 minutes.**
 - **Don't use the steel folding tables to put your dirty laundry bag on.** Other people fold there.
-- **If something breaks, tell us.** Don't just walk away. Use the [report-issue page](/report-issue) or wave down whoever's working.
+- **If something breaks, tell us.** Don't just walk away. Use the [report-issue page](/report-issue/) or wave down whoever's working.
 - **Strollers and carts are welcome** — we're a Brighton family neighborhood and we know.
 - **Tip jar at the kiosk:** there isn't one. We'd rather you put that money on a loyalty card and use it next time.
 
 That's the full list. Most people figure it out within 10 minutes of being here. Welcome to the spot.
 
-→ [What to bring on your first visit](/blog/first-laundromat-visit-checklist)
-→ [Or how to find us](/visit)
+→ [What to bring on your first visit](/blog/first-laundromat-visit-checklist/)
+→ [Or how to find us](/visit/)

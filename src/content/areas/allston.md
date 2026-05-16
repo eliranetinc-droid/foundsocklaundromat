@@ -22,8 +22,8 @@ The Found Sock is the closest fully card-operated laundromat to Allston. We're a
 - **By bus:** 64 and 86 stop within a few blocks.
 
 ### Tips for Allston students
-- Use a 45 lb washer to do a full month of laundry in one cycle. Way cheaper per pound than washing weekly.
-- Sunday mornings (9–11 AM) and Wednesday afternoons are our quietest times.
+- A 45 lb washer handles 2–3 weeks of regular laundry in one cycle — much cheaper per pound than weekly small loads.
+- Tuesday and Wednesday mornings are our quietest times. Avoid Sunday 11 AM – 4 PM (peak hours).
 - Tennis balls in the dryer help with comforters and pillows.
 
 [Get directions →](https://www.google.com/maps/dir/?api=1&destination=76+Washington+St,+Brighton,+MA+02135)

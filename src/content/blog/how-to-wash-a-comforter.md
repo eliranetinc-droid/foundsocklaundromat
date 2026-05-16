@@ -70,5 +70,5 @@ Pull it out while still slightly warm and lay it flat on a folding table for 5 m
 
 A clean comforter should feel **fluffier than when you brought it in**, not flatter. If it feels flat, the fill clumped — fluff it by hand and run it back through the dryer for 15 more minutes with the dryer balls.
 
-→ [See washer sizes and prices](/pricing)
-→ [Or check what to bring on your first visit](/visit)
+→ [See washer sizes and prices](/pricing/)
+→ [Or check what to bring on your first visit](/visit/)

@@ -1,19 +1,6 @@
 {
-  "rating": 4.8,
-  "count": 217,
+  "rating": null,
+  "count": 0,
   "fetchedAt": null,
-  "reviews": [
-    {
-      "author": "Placeholder",
-      "rating": 5,
-      "text": "Real reviews will be fetched from Google Places API at build time.",
-      "relativeTime": "today"
-    },
-    {
-      "author": "Placeholder 2",
-      "rating": 5,
-      "text": "Will be replaced once owner provides Google Place ID.",
-      "relativeTime": "today"
-    }
-  ]
+  "reviews": []
 }

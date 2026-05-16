@@ -72,5 +72,5 @@ Less often than you think. **Once or twice per season** is plenty for most peopl
 
 Spot-clean cuffs and the chin area between washes with a damp cloth + a drop of soap.
 
-→ [Washer sizes and prices](/pricing)
-→ [Or our temperature guide](/blog/wash-temperature-guide)
+→ [Washer sizes and prices](/pricing/)
+→ [Or our temperature guide](/blog/wash-temperature-guide/)

@@ -64,5 +64,5 @@ What to **avoid:**
 
 If you forget detergent, **we sell single-load packs at the kiosk** for a couple of dollars. They're correctly portioned, so you don't have to think about it.
 
-→ [See machine sizes and prices](/pricing)
-→ [Or our wash temperature guide](/blog/wash-temperature-guide)
+→ [See machine sizes and prices](/pricing/)
+→ [Or our wash temperature guide](/blog/wash-temperature-guide/)

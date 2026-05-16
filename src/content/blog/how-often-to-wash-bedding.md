@@ -82,5 +82,5 @@ For comforters, pillows, and large blankets, a home washer often can't fit them 
 
 Our **30 lb washer** ($6.25) handles a queen comforter. Our **45 lb washer** ($7.75) handles a king comforter or 2 pillows + sheets together. Once a quarter, it's worth the trip.
 
-→ [How to wash a comforter properly](/blog/how-to-wash-a-comforter)
-→ [Or see washer sizes](/pricing)
+→ [How to wash a comforter properly](/blog/how-to-wash-a-comforter/)
+→ [Or see washer sizes](/pricing/)
