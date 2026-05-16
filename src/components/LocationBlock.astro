@@ -9,11 +9,26 @@ const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${enco
 ---
 <section class="bg-[#f4f1ea]">
   <div class="max-w-3xl mx-auto px-5 py-12">
-    <div class="rounded-xl overflow-hidden h-48 md:h-64 mb-5 bg-[#c8d3bd]">
-      {mapEmbedUrl
-        ? <iframe src={mapEmbedUrl} class="w-full h-full" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Map showing Found Sock Laundromat"></iframe>
-        : <div class="w-full h-full flex items-center justify-center text-sm opacity-80">Map coming soon</div>
-      }
+    <div class="relative rounded-xl overflow-hidden h-48 md:h-64 mb-5 bg-[#c8d3bd]"
+         data-map-facade
+         data-embed-url={mapEmbedUrl ?? ''}>
+      {mapEmbedUrl ? (
+        <button
+          type="button"
+          data-map-load-btn
+          aria-label="Load interactive map"
+          class="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-3 cursor-pointer group bg-gradient-to-br from-[#d9e5cf] via-[#c8d3bd] to-[#b8c4a8] hover:from-[#cdd8c0] transition-colors">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-12 h-12 text-brand-blue-darker opacity-50 group-hover:opacity-70 transition-opacity" aria-hidden="true">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+          </svg>
+          <span class="inline-flex items-center gap-2 bg-white/90 backdrop-blur text-brand-blue-darker text-sm font-bold px-5 py-2.5 rounded-full shadow-sm group-hover:bg-white transition-colors">
+            Show interactive map
+          </span>
+          <span class="text-xs text-brand-blue-darker opacity-60">{b.address.streetAddress} · {b.address.addressLocality}</span>
+        </button>
+      ) : (
+        <div class="w-full h-full flex items-center justify-center text-sm opacity-80">Map coming soon</div>
+      )}
     </div>
     <h2 class="text-3xl font-bold tracking-tight mb-2">Find us in Brighton.</h2>
     <p class="opacity-70 mb-5 leading-relaxed">
@@ -25,3 +40,41 @@ const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${enco
     </a>
   </div>
 </section>
+
+<script>
+  // Map facade: only inject the heavy Google Maps iframe (300+ KB of JS) when
+  // the user clicks the placeholder OR when an IntersectionObserver sees it's
+  // about to enter the viewport. This keeps Google Maps out of the initial
+  // page load entirely.
+  function injectMap(facade: HTMLElement) {
+    const embedUrl = facade.dataset.embedUrl;
+    if (!embedUrl) return;
+    const iframe = document.createElement('iframe');
+    iframe.src = embedUrl;
+    iframe.className = 'w-full h-full border-0';
+    iframe.loading = 'lazy';
+    iframe.referrerPolicy = 'no-referrer-when-downgrade';
+    iframe.title = 'Map showing Found Sock Laundromat';
+    facade.replaceChildren(iframe);
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-map-facade]').forEach(facade => {
+    const btn = facade.querySelector<HTMLButtonElement>('[data-map-load-btn]');
+    btn?.addEventListener('click', () => injectMap(facade));
+
+    // Also auto-inject if facade is about to scroll into view (within 800 px).
+    // This way users who scroll-to-bottom see the live map; users who never
+    // reach it pay zero JS cost.
+    if ('IntersectionObserver' in window) {
+      const obs = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            injectMap(facade);
+            obs.disconnect();
+          }
+        }
+      }, { rootMargin: '800px 0px' });
+      obs.observe(facade);
+    }
+  });
+</script>

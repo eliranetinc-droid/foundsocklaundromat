@@ -1,11 +1,13 @@
 ---
+import { Picture } from 'astro:assets';
 import { getBusiness } from '../lib/business';
+import logo from '../assets/brand/logo-horizontal.png';
 const b = getBusiness();
 ---
 <footer class="bg-brand-blue-darker text-white">
   <div class="max-w-6xl mx-auto px-5 py-10">
     <div class="inline-block bg-white p-2.5 rounded-lg mb-6">
-      <img src="/brand/logo-horizontal.png" alt={b.name} width="160" height="29" />
+      <Picture src={logo} formats={['avif', 'webp']} widths={[160, 320]} alt={b.name} width={160} height={29} loading="lazy" />
     </div>
     <div class="grid grid-cols-2 md:grid-cols-5 gap-7 text-sm">
       <div>

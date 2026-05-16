@@ -1,4 +1,7 @@
 ---
+import { Picture } from 'astro:assets';
+import logo from '../assets/brand/logo-horizontal.png';
+
 const navItems = [
   { href: '/visit/', label: 'Visit' },
   { href: '/pricing/', label: 'Pricing' },
@@ -19,7 +22,7 @@ function isActive(href: string): boolean {
 <header class="border-b border-line">
   <div class="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between">
     <a href="/" class="flex items-center" aria-label="Found Sock home" aria-current={currentPath === '/' ? 'page' : undefined}>
-      <img src="/brand/logo-horizontal.png" alt="The Found Sock Laundromat" width="160" height="29" />
+      <Picture src={logo} formats={['avif', 'webp']} widths={[160, 320]} alt="The Found Sock Laundromat" width={160} height={29} loading="eager" fetchpriority="high" />
     </a>
     <nav class="hidden md:flex gap-7 text-sm font-medium" aria-label="Primary">
       {navItems.map(item => (
