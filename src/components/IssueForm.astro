@@ -16,7 +16,7 @@ for (let h = 0; h < 24; h++) {
 }
 
 const inputClass = 'w-full border-[1.5px] border-line rounded-xl px-3.5 py-2.5 text-sm focus:border-brand-blue focus:outline-none bg-white';
-const labelClass = 'text-xs font-bold text-brand-blue-darker block mb-1.5 tracking-wide';
+const labelClass = "text-xs font-bold text-brand-blue-darker block mb-1.5 tracking-wide after:content-['*'] after:ml-1 after:text-brand-red after:font-bold";
 const groupHeading = 'text-xs uppercase tracking-[0.2em] text-brand-blue font-bold mb-3 mt-8 first:mt-0';
 ---
 <form class="max-w-3xl" data-issue-form enctype="multipart/form-data">
@@ -102,7 +102,7 @@ const groupHeading = 'text-xs uppercase tracking-[0.2em] text-brand-blue font-bo
     </div>
   </div>
 
-  <h2 class={groupHeading}>Photo of the issue</h2>
+  <h2 class={groupHeading}>Photo of the issue <span class="text-brand-red normal-case tracking-normal">*</span></h2>
   <div>
     <input type="file" name="image" accept="image/*" required data-image-input class="block w-full text-sm text-brand-blue-darker file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-brand-blue/10 file:text-brand-blue hover:file:bg-brand-blue/20 file:cursor-pointer" />
     <p class="text-xs opacity-55 mt-1">Max 10 MB. JPG, PNG, or HEIC. A clear photo helps us resolve your claim faster.</p>
