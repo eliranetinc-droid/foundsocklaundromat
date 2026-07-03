@@ -6,7 +6,9 @@
 
 **Architecture:** The existing Astro 6 SSR Worker gains a D1 database (`DB`), an R2 bucket (`PHOTOS`), a custom worker entrypoint exporting an `email` handler (Cloudflare Email Routing catch-all), and outbound mail via Resend's HTTPS API as `support@foundsocklaundromat.com`. Cloudflare Access guards `/admin*` + `/api/admin*` at the edge; Astro middleware re-validates the Access JWT. Pure logic lives in `src/lib/helpdesk/*` with Vitest coverage.
 
-**Tech Stack:** Astro 6 (SSR, Cloudflare adapter v13.5 `workerEntryPoint`), Cloudflare D1 + R2 + Access + Email Routing, Resend API, `postal-mime` (MIME parse), `jose` (JWT verify), Tailwind v4, Vitest.
+**Tech Stack:** Astro 6 (SSR, Cloudflare adapter v13.5 — custom `main` entry file wrapping the adapter's `entrypoints/server` default export; NOTE: v13 has NO `workerEntryPoint` adapter option), Cloudflare D1 + R2 + Access + Email Routing, Resend API, `postal-mime` (MIME parse), `jose` (JWT verify), Tailwind v4, Vitest.
+
+**How the custom entry works (verified against installed v13.5.1):** `@astrojs/cloudflare/entrypoints/server` exports `default { fetch: handle }`. `wrangler.jsonc`'s `main` must point to a SOURCE file that exists pre-build — `@cloudflare/vite-plugin` validates it eagerly during `astro sync` and then builds it as the worker entry, writing a deploy-redirect config (`.wrangler/deploy/config.json` → `dist/server/wrangler.json`) that `wrangler deploy` consumes. So `src/worker.ts` simply re-exports the adapter's `fetch` and adds our `email` handler.
 
 **Spec:** `docs/superpowers/specs/2026-07-03-admin-helpdesk-design.md`
 
@@ -57,8 +59,9 @@ MODIFIED: astro.config.mjs, wrangler.jsonc, package.json, public/robots.txt,
 - Modify: `package.json` (via npm install)
 - Create: `db/schema.sql`
 - Create: `src/lib/helpdesk/env.ts`
+- Create: `src/worker.ts` (minimal wrapper)
 - Modify: `wrangler.jsonc`
-- Modify: `astro.config.mjs`
+- (astro.config.mjs is NOT modified — v13 adapter has no workerEntryPoint option)
 
 - [ ] **Step 1: Install dependencies**
 
@@ -154,7 +157,7 @@ export const SUPPORT_FROM = `The Found Sock Laundromat <support@${SUPPORT_DOMAIN
 	"compatibility_flags": ["global_fetch_strictly_public"],
 	"name": "foundsocklaundromat",
 	"account_id": "448277032c83b1f97b73d3ebeddd0712",
-	"main": "./dist/_worker.js/index.js",
+	"main": "./src/worker.ts",
 	"assets": {
 		"directory": "./dist/client",
 		"binding": "ASSETS"
@@ -175,39 +178,21 @@ export const SUPPORT_FROM = `The Found Sock Laundromat <support@${SUPPORT_DOMAIN
 	}
 }
 ```
-`REPLACE_AT_CUTOVER` values are intentionally invalid-but-explicit; Task 18 (cutover) swaps in real values from the dashboard BEFORE the deploy push. Local dev ignores `database_id`. `main` changes because Task 11 introduces a custom entrypoint (built to `dist/_worker.js/index.js`).
+`REPLACE_AT_CUTOVER` values are intentionally invalid-but-explicit; Task 18 (cutover) swaps in real values from the dashboard BEFORE the deploy push. Local dev ignores `database_id`. `main` now points at our SOURCE entry `src/worker.ts` (must exist before any build — the Cloudflare vite plugin validates it during `astro sync`); the plugin's deploy-redirect config makes `wrangler deploy` use the built artifact.
 
-- [ ] **Step 5: Update `astro.config.mjs`** — change only the adapter line:
-
-```js
-  adapter: cloudflare({
-    // Use Sharp at build time so AVIF/WebP variants ship as static files in
-    // /_astro/ instead of being generated at runtime by Cloudflare Workers.
-    imageService: 'compile',
-    // Custom entrypoint so the same Worker also handles inbound email
-    // (Cloudflare Email Routing -> email() handler). See src/worker.ts.
-    workerEntryPoint: { path: 'src/worker.ts' },
-  }),
-```
-NOTE: the build will FAIL until `src/worker.ts` exists (Task 11). To keep every task green, ALSO create a minimal valid `src/worker.ts` now:
+- [ ] **Step 5: Create minimal `src/worker.ts`** (astro.config.mjs stays UNCHANGED — the v13 adapter has no `workerEntryPoint` option; the custom entry is wired purely via wrangler `main`):
 
 ```ts
-import type { SSRManifest } from 'astro';
-import { App } from 'astro/app';
-import { handle } from '@astrojs/cloudflare/handler';
+// Custom worker entry: wraps the Astro adapter's fetch handler so we can
+// also export an email() handler (Cloudflare Email Routing) in Task 11.
+// wrangler.jsonc `main` points here; @cloudflare/vite-plugin builds it.
+import server from '@astrojs/cloudflare/entrypoints/server';
 
-export function createExports(manifest: SSRManifest) {
-  const app = new App(manifest);
-  return {
-    default: {
-      async fetch(request: Request, env: unknown, ctx: ExecutionContext) {
-        return handle(manifest, app, request, env as never, ctx as never);
-      },
-    },
-  };
-}
+export default {
+  fetch: server.fetch,
+};
 ```
-(TS: if `ExecutionContext` is unresolved, add `import type { ExecutionContext } from '@cloudflare/workers-types';`.)
+(TS fallback ONLY if `npm run build` fails to resolve types for that import: add `// @ts-expect-error adapter entry ships no explicit types condition` on the import line. Do not otherwise alter it.)
 
 - [ ] **Step 6: Apply schema to LOCAL D1 + verify build**
 
@@ -215,7 +200,7 @@ export function createExports(manifest: SSRManifest) {
 npx wrangler d1 execute foundsock-helpdesk --local --file=db/schema.sql
 npm run build
 ```
-Expected: schema command prints executed statements (local only — no auth needed); build completes ("[build] Complete!"). If the build errors on `workerEntryPoint`, re-check adapter version is ^13 (`npm ls @astrojs/cloudflare`).
+Expected: schema command prints executed statements (local only — no auth needed); build completes ("[build] Complete!"); the deploy-redirect artifacts exist: `test -f .wrangler/deploy/config.json && test -f dist/server/wrangler.json && echo redirect-ok` prints `redirect-ok`, and `dist/server/wrangler.json`'s `main` points at a built server file inside `dist/`.
 
 - [ ] **Step 7: Run existing tests still pass**
 
@@ -227,7 +212,7 @@ Expected: all existing tests pass (28 at time of writing).
 - [ ] **Step 8: Commit**
 
 ```bash
-git add package.json package-lock.json db/schema.sql src/lib/helpdesk/env.ts src/worker.ts wrangler.jsonc astro.config.mjs
+git add package.json package-lock.json db/schema.sql src/lib/helpdesk/env.ts src/worker.ts wrangler.jsonc
 git commit -m "feat(helpdesk): deps, D1 schema, env plumbing, worker entrypoint scaffold"
 ```
 
@@ -1539,42 +1524,37 @@ export async function handleInboundEmail(message: ForwardableEmailMessage, env: 
 }
 ```
 
-- [ ] **Step 2: Replace `src/worker.ts`** with the full version:
+- [ ] **Step 2: Replace `src/worker.ts`** with the full version (same wrapper pattern established in Task 1 — do NOT reintroduce `createExports`; the v13 adapter entry is a plain `default { fetch }`):
 
 ```ts
-import type { SSRManifest } from 'astro';
-import { App } from 'astro/app';
-import { handle } from '@astrojs/cloudflare/handler';
+// Custom worker entry: wraps the Astro adapter's fetch handler and adds the
+// email() handler that Cloudflare Email Routing (catch-all) delivers to.
+// wrangler.jsonc `main` points here; @cloudflare/vite-plugin builds it.
+import server from '@astrojs/cloudflare/entrypoints/server';
 import type { ExecutionContext, ForwardableEmailMessage } from '@cloudflare/workers-types';
 import { handleInboundEmail } from './lib/helpdesk/inbound';
 import type { HelpdeskEnv } from './lib/helpdesk/env';
 
-export function createExports(manifest: SSRManifest) {
-  const app = new App(manifest);
-  return {
-    default: {
-      async fetch(request: Request, env: unknown, ctx: ExecutionContext) {
-        return handle(manifest, app, request, env as never, ctx as never);
-      },
-      async email(message: ForwardableEmailMessage, env: HelpdeskEnv, _ctx: ExecutionContext) {
-        try {
-          await handleInboundEmail(message, env);
-        } catch (e) {
-          console.error('[helpdesk] inbound email failed:', e);
-          // Do not rethrow: rejecting would bounce the sender's email.
-        }
-      },
-    },
-  };
-}
+export default {
+  fetch: server.fetch,
+  async email(message: ForwardableEmailMessage, env: HelpdeskEnv, _ctx: ExecutionContext) {
+    try {
+      await handleInboundEmail(message, env);
+    } catch (e) {
+      console.error('[helpdesk] inbound email failed:', e);
+      // Do not rethrow: rejecting would bounce the sender's email.
+    }
+  },
+};
 ```
+(Keep any `// @ts-expect-error` that Task 1 needed on the `server` import.)
 
 - [ ] **Step 3: Build + tests**
 
 ```bash
 npm run build && npm test
 ```
-Expected: build Complete! (verify `dist/_worker.js/index.js` exists: `ls dist/_worker.js/index.js`); tests pass.
+Expected: build Complete! (verify redirect artifacts: `test -f .wrangler/deploy/config.json && test -f dist/server/wrangler.json && echo redirect-ok`); tests pass.
 
 - [ ] **Step 4: Commit**
 
@@ -2231,7 +2211,7 @@ git commit -m "chore(helpdesk): remove Freshdesk integration (replaced by self-h
 rm -rf dist node_modules/.astro
 npm run build && npm test
 ```
-Expected: build Complete! + `dist/_worker.js/index.js` exists + 0 test failures.
+Expected: build Complete! + deploy-redirect artifacts exist (`.wrangler/deploy/config.json`, `dist/server/wrangler.json`) + 0 test failures.
 
 - [ ] **Step 2: Public-page regression greps** (guard the 100/100 setup)
 
