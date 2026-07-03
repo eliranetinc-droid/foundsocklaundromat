@@ -379,7 +379,7 @@ Expected: FAIL — cannot resolve `./email-match`.
 ```ts
 import { SUPPORT_DOMAIN } from './env';
 
-const PLUS_RE = new RegExp(`^support\\+(t[a-z2-9]{10})@${SUPPORT_DOMAIN.replace('.', '\\.')}$`, 'i');
+const PLUS_RE = new RegExp(`^support\\+(t[a-z2-9]{10})@${SUPPORT_DOMAIN.replace(/\./g, '\\.')}$`, 'i');
 
 /** Layer 1: find our reply token in any recipient address. */
 export function parsePlusToken(recipients: string[]): string | null {

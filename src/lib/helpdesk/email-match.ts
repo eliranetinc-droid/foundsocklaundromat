@@ -1,6 +1,6 @@
 import { SUPPORT_DOMAIN } from './env';
 
-const PLUS_RE = new RegExp(`^support\\+(t[a-z2-9]{10})@${SUPPORT_DOMAIN.replace('.', '\\.')}$`, 'i');
+const PLUS_RE = new RegExp(`^support\\+(t[a-z2-9]{10})@${SUPPORT_DOMAIN.replace(/\./g, '\\.')}$`, 'i');
 
 /** Layer 1: find our reply token in any recipient address. */
 export function parsePlusToken(recipients: string[]): string | null {
@@ -41,6 +41,8 @@ export function stripQuotedReply(text: string): string {
   }
   const stripped = lines.slice(0, cut).join('\n').trim();
   const full = (text ?? '').trim();
+  // Short replies ("ok", "thanks") are real content — only fall back to the
+  // full text when stripping removed EVERYTHING (all-quoted email).
   return stripped.length > 0 ? stripped : full;
 }
 
