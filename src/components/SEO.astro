@@ -29,6 +29,9 @@ const schemas = [
 <meta name="description" content={description} />
 <link rel="canonical" href={canonical ?? Astro.url.href} />
 {noindex && <meta name="robots" content="noindex" />}
+{(b as any).googleSiteVerification && (
+  <meta name="google-site-verification" content={(b as any).googleSiteVerification} />
+)}
 
 <meta property="og:title" content={fullTitle} />
 <meta property="og:description" content={description} />
