@@ -27,8 +27,10 @@ Update once → updates schema, hero, footer, and everything else.
 
 | Variable | Purpose | Set in |
 |---|---|---|
-| `FRESHDESK_SUBDOMAIN` | Your Freshdesk subdomain (e.g., `foundsock`) | Cloudflare Pages env |
-| `FRESHDESK_API_KEY` | Freshdesk API key (Freshdesk Dashboard → Profile → API key) | Cloudflare Pages env (encrypted) |
+| `RESEND_API_KEY` | Resend API key for outbound helpdesk email | Worker secret (dashboard) |
+| `NOTIFY_EMAIL` | Owner's private address for new-ticket notifications | Worker secret (dashboard) |
+| `CF_ACCESS_TEAM_DOMAIN` | Cloudflare Access team domain guarding `/admin` | `wrangler.jsonc` vars |
+| `CF_ACCESS_AUD` | Cloudflare Access application AUD tag | `wrangler.jsonc` vars |
 | `GOOGLE_PLACES_API_KEY` | For build-time review fetch | GitHub Actions secret |
 | `PUBLIC_MAPS_API_KEY` | For Google Maps embed | Cloudflare Pages env |
 | `GOOGLE_PLACE_ID` | Your laundromat's Place ID | `src/data/business.json` |
