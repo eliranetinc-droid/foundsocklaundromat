@@ -50,8 +50,8 @@ const atts = (json: string | null): string[] => { try { return JSON.parse(json ?
     {ticket.photo_key && (
       <div class="mt-4">
         <span class="opacity-50 text-xs uppercase tracking-wider block mb-2">Photo</span>
-        <a href={`/api/admin/photo/${ticket.photo_key}`} target="_blank">
-          <img src={`/api/admin/photo/${ticket.photo_key}`} alt="Submitted photo" class="max-h-64 rounded-xl border border-line" loading="lazy" />
+        <a href={`/api/admin/photo/${ticket.photo_key}/`} target="_blank">
+          <img src={`/api/admin/photo/${ticket.photo_key}/`} alt="Submitted photo" class="max-h-64 rounded-xl border border-line" loading="lazy" />
         </a>
       </div>
     )}
@@ -71,8 +71,8 @@ const atts = (json: string | null): string[] => { try { return JSON.parse(json ?
           </span>
           <p class="text-sm whitespace-pre-wrap">{m.body}</p>
           {atts(m.attachments).map(k => (
-            <a href={`/api/admin/photo/${k}`} target="_blank">
-              <img src={`/api/admin/photo/${k}`} alt="Attachment" class="mt-2 max-h-48 rounded-lg border border-line bg-white" loading="lazy" />
+            <a href={`/api/admin/photo/${k}/`} target="_blank">
+              <img src={`/api/admin/photo/${k}/`} alt="Attachment" class="mt-2 max-h-48 rounded-lg border border-line bg-white" loading="lazy" />
             </a>
           ))}
         </div>
