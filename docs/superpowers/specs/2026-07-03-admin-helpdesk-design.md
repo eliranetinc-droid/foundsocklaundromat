@@ -110,7 +110,7 @@ Schema applied once via the Cloudflare dashboard D1 console (avoids wrangler-aut
 ### 5.1 Form submission (issue form)
 1. `POST /api/submit-issue` (multipart, unchanged client contract — same field names, photo required).
 2. Validate exactly as today (all fields required; conditional machine number / card fields; ≤10 MB image).
-3. Generate ids; store photo at R2 key `form/<ticketId>/<sanitized-filename>`.
+3. Generate ids; store photo at R2 key `form/<uuid>/<sanitized-filename>` (a fresh UUID, uploaded before the ticket row exists so the row can reference the key).
 4. Insert ticket (`source='issue-form'`, `subject='Issue: <machineType> #<n>'` or `'Issue: <machineType>'`) + first message (the free-text message).
 5. Send **confirmation email** to customer via Resend (template §7.3). Failure to send does NOT fail the submission (log + continue).
 6. Send **owner notification** (§7.5). Failure tolerated.
