@@ -420,7 +420,9 @@ export function stripQuotedReply(text: string): string {
   }
   const stripped = lines.slice(0, cut).join('\n').trim();
   const full = (text ?? '').trim();
-  return stripped.length >= 10 ? stripped : full;
+  // Short replies ("ok", "thanks") are real content — only fall back to the
+  // full text when stripping removed EVERYTHING (all-quoted email).
+  return stripped.length > 0 ? stripped : full;
 }
 
 /** Minimal HTML → text for html-only emails. */
@@ -441,7 +443,7 @@ export function htmlToText(html: string): string {
 ```bash
 npm test -- email-match
 ```
-Expected: PASS (9 tests).
+Expected: PASS (10 tests; full suite 42).
 
 - [ ] **Step 5: Commit**
 
@@ -2190,7 +2192,7 @@ Expected: `clean`.
 ```bash
 npm run build && npm test
 ```
-Expected: build Complete!; tests pass with 0 failures (freshdesk tests gone; 31 new helpdesk tests present — roughly 54 total).
+Expected: build Complete!; tests pass with 0 failures (freshdesk tests gone; 32 new helpdesk tests present — roughly 55 total).
 
 - [ ] **Step 4: Commit**
 
