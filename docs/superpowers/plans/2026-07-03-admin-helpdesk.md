@@ -2228,7 +2228,10 @@ git commit -m "chore(helpdesk): remove Freshdesk integration (replaced by self-h
 rm -rf dist node_modules/.astro
 npm run build && npm test
 ```
-Expected: build Complete! + deploy-redirect artifacts exist (`.wrangler/deploy/config.json`, `dist/server/wrangler.json`) + 0 test failures.
+Expected: build Complete! + deploy-redirect artifacts exist (`.wrangler/deploy/config.json`, `dist/server/wrangler.json`) + 0 test failures. Also confirm the email handler survived bundling (entry.mjs is a re-export shim; check the real chunk):
+```bash
+node -e "const fs=require('fs');const m=fs.readFileSync('dist/server/entry.mjs','utf8').match(/chunks\/[\w.-]+\.mjs/);const c=fs.readFileSync('dist/server/'+m[0],'utf8');console.log(/async email\s*\(/.test(c)?'email-handler-present':'MISSING')"
+```
 
 - [ ] **Step 2: Public-page regression greps** (guard the 100/100 setup)
 
