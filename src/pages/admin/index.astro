@@ -1,0 +1,56 @@
+---
+export const prerender = false;
+
+import AdminLayout from '../../components/admin/AdminLayout.astro';
+import { getHelpdeskEnv } from '../../lib/helpdesk/env';
+import { countOpenTickets, countUnreadTickets, recentMessages, viewsByDay } from '../../lib/helpdesk/db';
+
+const env = await getHelpdeskEnv();
+const [openCount, unreadCount, recent, views] = await Promise.all([
+  countOpenTickets(env.DB),
+  countUnreadTickets(env.DB),
+  recentMessages(env.DB, 8),
+  viewsByDay(env.DB, 14),
+]);
+const maxViews = Math.max(1, ...views.map(v => v.views));
+const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+---
+<AdminLayout title="Dashboard">
+  <h1 class="text-3xl font-bold tracking-tight mb-6">Dashboard</h1>
+
+  <div class="grid grid-cols-2 gap-4 mb-8 max-w-md">
+    <a href="/admin/tickets" class="bg-white rounded-2xl border border-line p-5 hover:border-brand-blue/40">
+      <p class="text-4xl font-bold">{openCount}</p>
+      <p class="text-xs uppercase tracking-widest opacity-60 mt-1">Open tickets</p>
+    </a>
+    <a href="/admin/tickets" class="bg-white rounded-2xl border border-line p-5 hover:border-brand-blue/40">
+      <p class="text-4xl font-bold text-brand-red">{unreadCount}</p>
+      <p class="text-xs uppercase tracking-widest opacity-60 mt-1">Unread</p>
+    </a>
+  </div>
+
+  <h2 class="text-xs uppercase tracking-[0.2em] text-brand-blue font-bold mb-3">Last 14 days — visitors</h2>
+  <div class="bg-white rounded-2xl border border-line p-5 mb-8">
+    {views.length === 0 ? <p class="text-sm opacity-60">No data yet.</p> : (
+      <div class="flex items-end gap-1 h-24">
+        {views.map(v => (
+          <div class="flex-1 bg-brand-blue/80 rounded-t" style={`height:${Math.max(4, Math.round((v.views / maxViews) * 100))}%`} title={`${v.day}: ${v.views}`}></div>
+        ))}
+      </div>
+    )}
+  </div>
+
+  <h2 class="text-xs uppercase tracking-[0.2em] text-brand-blue font-bold mb-3">Recent activity</h2>
+  <div class="space-y-2">
+    {recent.length === 0 && <p class="text-sm opacity-60">No messages yet.</p>}
+    {recent.map(m => (
+      <a href={`/admin/tickets/${m.ticket_id}`} class="block bg-white rounded-xl border border-line px-4 py-3 hover:border-brand-blue/40">
+        <div class="flex justify-between gap-3 text-xs opacity-60 mb-0.5">
+          <span>{m.public_id} · {m.customer_name} · {m.direction === 'inbound' ? 'customer' : 'you'}</span>
+          <span>{fmt(m.created_at)}</span>
+        </div>
+        <p class="text-sm truncate">{m.body}</p>
+      </a>
+    ))}
+  </div>
+</AdminLayout>

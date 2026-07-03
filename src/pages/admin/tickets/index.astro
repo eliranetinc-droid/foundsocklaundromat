@@ -1,0 +1,40 @@
+---
+export const prerender = false;
+
+import AdminLayout from '../../../components/admin/AdminLayout.astro';
+import { getHelpdeskEnv } from '../../../lib/helpdesk/env';
+import { listTickets } from '../../../lib/helpdesk/db';
+
+const status = Astro.url.searchParams.get('status') === 'closed' ? 'closed' : 'open';
+const env = await getHelpdeskEnv();
+const tickets = await listTickets(env.DB, status);
+const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const sourceBadge: Record<string, string> = { 'issue-form': 'Issue', 'contact-form': 'Contact', email: 'Email' };
+---
+<AdminLayout title="Tickets">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-3xl font-bold tracking-tight">Tickets</h1>
+    <div class="flex gap-2 text-sm font-semibold">
+      <a href="/admin/tickets" class:list={['px-4 py-2 rounded-full border', status === 'open' ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white border-line']}>Open</a>
+      <a href="/admin/tickets?status=closed" class:list={['px-4 py-2 rounded-full border', status === 'closed' ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white border-line']}>Closed</a>
+    </div>
+  </div>
+
+  {tickets.length === 0 && <p class="text-sm opacity-60">No {status} tickets.</p>}
+  <div class="space-y-2">
+    {tickets.map(t => (
+      <a href={`/admin/tickets/${t.id}`} class="block bg-white rounded-xl border border-line px-4 py-3 hover:border-brand-blue/40">
+        <div class="flex items-center justify-between gap-3 mb-0.5">
+          <div class="flex items-center gap-2 min-w-0">
+            {t.unread === 1 && <span class="w-2 h-2 rounded-full bg-brand-red shrink-0" title="Unread"></span>}
+            <span class:list={['truncate', t.unread === 1 ? 'font-bold' : 'font-semibold']}>{t.customer_name}</span>
+            <span class="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-brand-blue/10 text-brand-blue shrink-0">{sourceBadge[t.source] ?? t.source}</span>
+          </div>
+          <span class="text-xs opacity-60 shrink-0">{fmt(t.last_activity_at)}</span>
+        </div>
+        <p class:list={['text-sm truncate', t.unread === 1 ? 'font-semibold' : '']}>{t.public_id} — {t.subject}</p>
+        {t.snippet && <p class="text-sm opacity-60 truncate">{t.snippet}</p>}
+      </a>
+    ))}
+  </div>
+</AdminLayout>
