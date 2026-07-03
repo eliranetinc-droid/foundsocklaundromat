@@ -1,0 +1,62 @@
+---
+export const prerender = false;
+
+import AdminLayout from '../../components/admin/AdminLayout.astro';
+import { getHelpdeskEnv } from '../../lib/helpdesk/env';
+import { viewsByDay, topPages, topCountries, deviceSplit } from '../../lib/helpdesk/db';
+
+const env = await getHelpdeskEnv();
+const [views, pages, countries, devices] = await Promise.all([
+  viewsByDay(env.DB, 30), topPages(env.DB, 30), topCountries(env.DB, 30), deviceSplit(env.DB, 30),
+]);
+const total = views.reduce((s, v) => s + v.views, 0);
+const maxDay = Math.max(1, ...views.map(v => v.views));
+const maxPage = Math.max(1, ...pages.map(p => p.views));
+const devTotal = Math.max(1, devices.reduce((s, d) => s + d.views, 0));
+---
+<AdminLayout title="Analytics">
+  <h1 class="text-3xl font-bold tracking-tight mb-1">Analytics</h1>
+  <p class="text-sm opacity-60 mb-6">Last 30 days · {total} page views · first-party, cookie-free</p>
+
+  <h2 class="text-xs uppercase tracking-[0.2em] text-brand-blue font-bold mb-3">Views per day</h2>
+  <div class="bg-white rounded-2xl border border-line p-5 mb-8">
+    {views.length === 0 ? <p class="text-sm opacity-60">No data yet — check back after some traffic.</p> : (
+      <div class="flex items-end gap-[2px] h-32">
+        {views.map(v => (
+          <div class="flex-1 bg-brand-blue/80 rounded-t hover:bg-brand-red" style={`height:${Math.max(3, Math.round((v.views / maxDay) * 100))}%`} title={`${v.day}: ${v.views} views`}></div>
+        ))}
+      </div>
+    )}
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-6">
+    <div>
+      <h2 class="text-xs uppercase tracking-[0.2em] text-brand-blue font-bold mb-3">Top pages</h2>
+      <div class="bg-white rounded-2xl border border-line p-5 space-y-2.5">
+        {pages.length === 0 && <p class="text-sm opacity-60">No data yet.</p>}
+        {pages.map(p => (
+          <div>
+            <div class="flex justify-between text-sm mb-0.5"><span class="truncate">{p.path}</span><span class="opacity-60 shrink-0 ml-3">{p.views}</span></div>
+            <div class="h-1.5 bg-line rounded-full overflow-hidden"><div class="h-full bg-brand-blue rounded-full" style={`width:${Math.round((p.views / maxPage) * 100)}%`}></div></div>
+          </div>
+        ))}
+      </div>
+    </div>
+    <div class="space-y-6">
+      <div>
+        <h2 class="text-xs uppercase tracking-[0.2em] text-brand-blue font-bold mb-3">Countries</h2>
+        <div class="bg-white rounded-2xl border border-line p-5 space-y-1.5 text-sm">
+          {countries.length === 0 && <p class="opacity-60">No data yet.</p>}
+          {countries.map(c => <div class="flex justify-between"><span>{c.country || '—'}</span><span class="opacity-60">{c.views}</span></div>)}
+        </div>
+      </div>
+      <div>
+        <h2 class="text-xs uppercase tracking-[0.2em] text-brand-blue font-bold mb-3">Devices</h2>
+        <div class="bg-white rounded-2xl border border-line p-5 space-y-1.5 text-sm">
+          {devices.length === 0 && <p class="opacity-60">No data yet.</p>}
+          {devices.map(d => <div class="flex justify-between"><span class="capitalize">{d.device}</span><span class="opacity-60">{d.views} ({Math.round((d.views / devTotal) * 100)}%)</span></div>)}
+        </div>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
