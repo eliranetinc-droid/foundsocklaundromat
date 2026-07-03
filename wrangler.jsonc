@@ -18,7 +18,6 @@
 		{ "binding": "PHOTOS", "bucket_name": "foundsock-photos" }
 	],
 	"vars": {
-		"FRESHDESK_SUBDOMAIN": "eliranetinc",
 		"CF_ACCESS_TEAM_DOMAIN": "REPLACE_AT_CUTOVER.cloudflareaccess.com",
 		"CF_ACCESS_AUD": "REPLACE_AT_CUTOVER"
 	}
