@@ -1,0 +1,132 @@
+---
+export const prerender = false;
+
+import AdminLayout from '../../../components/admin/AdminLayout.astro';
+import { getHelpdeskEnv } from '../../../lib/helpdesk/env';
+import { getTicket, getMessages, markRead } from '../../../lib/helpdesk/db';
+
+const id = Astro.params.id ?? '';
+const env = await getHelpdeskEnv();
+const ticket = await getTicket(env.DB, id);
+if (!ticket) return new Response('Not found', { status: 404 });
+
+const messages = await getMessages(env.DB, ticket.id);
+if (ticket.unread === 1) await markRead(env.DB, ticket.id);
+
+const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const details: [string, string | null][] = [
+  ['Email', ticket.customer_email],
+  ['Phone', ticket.customer_phone],
+  ['Machine', ticket.machine_type ? `${ticket.machine_type}${ticket.machine_number ? ' #' + ticket.machine_number : ''}` : null],
+  ['Date/time', ticket.issue_date ? `${ticket.issue_date} ${ticket.issue_time ?? ''}` : null],
+  ['Card', ticket.card_type ? `${ticket.card_type}${ticket.card_last4 ? ' • ' + ticket.card_last4 : ''}${ticket.loyalty_card ? ' • ' + ticket.loyalty_card : ''}` : null],
+  ['Cost', ticket.cost ? `$${ticket.cost}` : null],
+  ['Source', ticket.source],
+  ['Created', fmt(ticket.created_at)],
+];
+const atts = (json: string | null): string[] => { try { return JSON.parse(json ?? '[]'); } catch { return []; } };
+---
+<AdminLayout title={ticket.public_id}>
+  <a href="/admin/tickets" class="text-sm text-brand-blue font-semibold hover:text-brand-red">← All tickets</a>
+
+  <div class="flex items-start justify-between gap-4 mt-2 mb-5">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">{ticket.subject}</h1>
+      <p class="text-sm opacity-60">{ticket.public_id} · {ticket.customer_name}</p>
+    </div>
+    <button id="statusBtn" data-ticket={ticket.id} data-status={ticket.status}
+      class:list={['text-sm font-bold px-5 py-2 rounded-full border shrink-0',
+        ticket.status === 'open' ? 'border-line bg-white hover:border-brand-blue/50' : 'bg-brand-blue text-white border-brand-blue']}>
+      {ticket.status === 'open' ? 'Close ticket' : 'Reopen ticket'}
+    </button>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-line p-5 mb-6">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-sm">
+      {details.filter(([, v]) => v).map(([k, v]) => (
+        <div><span class="opacity-50 text-xs uppercase tracking-wider block">{k}</span>{v}</div>
+      ))}
+    </div>
+    {ticket.photo_key && (
+      <div class="mt-4">
+        <span class="opacity-50 text-xs uppercase tracking-wider block mb-2">Photo</span>
+        <a href={`/api/admin/photo/${ticket.photo_key}`} target="_blank">
+          <img src={`/api/admin/photo/${ticket.photo_key}`} alt="Submitted photo" class="max-h-64 rounded-xl border border-line" loading="lazy" />
+        </a>
+      </div>
+    )}
+  </div>
+
+  <div class="space-y-3 mb-6">
+    {messages.map(m => (
+      m.direction === 'note' ? (
+        <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 text-sm">
+          <span class="text-[10px] uppercase tracking-wider font-bold text-amber-700 block mb-0.5">Private note · {fmt(m.created_at)}</span>
+          <p class="whitespace-pre-wrap">{m.body}</p>
+        </div>
+      ) : (
+        <div class:list={['max-w-[85%] rounded-2xl px-4 py-3', m.direction === 'inbound' ? 'bg-white border border-line' : 'bg-brand-blue text-white ml-auto']}>
+          <span class:list={['text-[10px] uppercase tracking-wider font-bold block mb-1', m.direction === 'inbound' ? 'text-brand-blue' : 'text-white/70']}>
+            {m.direction === 'inbound' ? ticket.customer_name : 'You'} · {fmt(m.created_at)}
+          </span>
+          <p class="text-sm whitespace-pre-wrap">{m.body}</p>
+          {atts(m.attachments).map(k => (
+            <a href={`/api/admin/photo/${k}`} target="_blank">
+              <img src={`/api/admin/photo/${k}`} alt="Attachment" class="mt-2 max-h-48 rounded-lg border border-line bg-white" loading="lazy" />
+            </a>
+          ))}
+        </div>
+      )
+    ))}
+  </div>
+
+  <form id="replyForm" data-ticket={ticket.id} class="bg-white rounded-2xl border border-line p-4">
+    <label class="text-xs font-bold uppercase tracking-wider text-brand-blue block mb-2">Reply to {ticket.customer_name}</label>
+    <textarea name="body" required rows="4" maxlength="10000"
+      class="w-full border-[1.5px] border-line rounded-xl px-3.5 py-3 text-sm focus:border-brand-blue focus:outline-none resize-y"
+      placeholder="Sent from support@foundsocklaundromat.com — your personal email stays hidden."></textarea>
+    <div class="flex items-center gap-3 mt-3">
+      <button type="submit" class="bg-brand-red text-white font-bold text-sm px-7 py-2.5 rounded-full disabled:opacity-50">Send reply →</button>
+      <button type="button" id="noteBtn" class="text-sm font-semibold text-amber-700 hover:underline">Save as private note</button>
+      <span id="formStatus" class="text-sm flex-1" aria-live="polite"></span>
+    </div>
+  </form>
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('replyForm') as HTMLFormElement;
+  const statusEl = document.getElementById('formStatus')!;
+  const ticketId = form.dataset.ticket!;
+  const ta = form.querySelector('textarea')!;
+
+  async function post(url: string, payload: object): Promise<boolean> {
+    statusEl.textContent = 'Working…';
+    statusEl.className = 'text-sm flex-1 opacity-60';
+    try {
+      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error(String(res.status));
+      return true;
+    } catch {
+      statusEl.textContent = 'Failed — nothing was saved. Try again.';
+      statusEl.className = 'text-sm flex-1 text-brand-red';
+      return false;
+    }
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!ta.value.trim()) return;
+    if (await post('/api/admin/reply/', { ticketId, body: ta.value })) location.reload();
+  });
+
+  document.getElementById('noteBtn')!.addEventListener('click', async () => {
+    if (!ta.value.trim()) return;
+    if (await post('/api/admin/note/', { ticketId, body: ta.value })) location.reload();
+  });
+
+  const statusBtn = document.getElementById('statusBtn') as HTMLButtonElement;
+  statusBtn.addEventListener('click', async () => {
+    const next = statusBtn.dataset.status === 'open' ? 'closed' : 'open';
+    if (await post('/api/admin/status/', { ticketId, status: next })) location.reload();
+  });
+</script>
