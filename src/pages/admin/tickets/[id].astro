@@ -99,7 +99,14 @@ const atts = (json: string | null): string[] => { try { return JSON.parse(json ?
   const ticketId = form.dataset.ticket!;
   const ta = form.querySelector('textarea')!;
 
+  // Single gate for reply/note/status: a double-click on Reply would email the
+  // customer twice (the API sends before it persists). Stays locked on success
+  // because location.reload() follows.
+  let inFlight = false;
+
   async function post(url: string, payload: object): Promise<boolean> {
+    if (inFlight) return false;
+    inFlight = true;
     statusEl.textContent = 'Working…';
     statusEl.className = 'text-sm flex-1 opacity-60';
     try {
@@ -109,6 +116,7 @@ const atts = (json: string | null): string[] => { try { return JSON.parse(json ?
     } catch {
       statusEl.textContent = 'Failed — nothing was saved. Try again.';
       statusEl.className = 'text-sm flex-1 text-brand-red';
+      inFlight = false;
       return false;
     }
   }
