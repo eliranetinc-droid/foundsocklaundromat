@@ -562,7 +562,7 @@ export function isValidPath(p: unknown): p is string {
 ```bash
 npm test -- pv
 ```
-Expected: PASS (8 tests).
+Expected: PASS (6 tests; full suite 49).
 
 - [ ] **Step 5: Commit**
 
@@ -2202,7 +2202,7 @@ Expected: `clean`.
 ```bash
 npm run build && npm test
 ```
-Expected: build Complete!; tests pass with 0 failures (freshdesk tests gone; 33 new helpdesk tests present — roughly 56 total).
+Expected: build Complete!; tests pass with 0 failures (freshdesk tests gone; 31 new helpdesk tests present — roughly 54 total). Counts are approximate — the invariant that matters is 0 failures.
 
 - [ ] **Step 4: Commit**
 
