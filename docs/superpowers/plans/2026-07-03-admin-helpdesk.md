@@ -2281,6 +2281,8 @@ This task is interactive (Cloudflare/Resend dashboards). Values produced here re
 - [ ] **Step 7: Commit config + deploy**
 
 ```bash
+# TRIPWIRE: refuse to proceed if any placeholder survived (quality-review recommendation)
+! grep -q REPLACE_AT_CUTOVER wrangler.jsonc || { echo "PLACEHOLDERS REMAIN in wrangler.jsonc — fill real values first"; exit 1; }
 git add wrangler.jsonc
 git commit -m "chore(helpdesk): cutover config (D1 id, Access team/aud)"
 TOKEN=$(gh auth token --user eliranetinc-droid) && git push "https://x-access-token:${TOKEN}@github.com/eliranetinc-droid/foundsocklaundromat.git" main
