@@ -3,7 +3,7 @@
 	"compatibility_flags": ["global_fetch_strictly_public"],
 	"name": "foundsocklaundromat",
 	"account_id": "448277032c83b1f97b73d3ebeddd0712",
-	"main": "@astrojs/cloudflare/entrypoints/server",
+	"main": "./src/worker.ts",
 	"assets": {
 		"directory": "./dist/client",
 		"binding": "ASSETS"
@@ -11,7 +11,15 @@
 	"observability": {
 		"enabled": true
 	},
+	"d1_databases": [
+		{ "binding": "DB", "database_name": "foundsock-helpdesk", "database_id": "REPLACE_AT_CUTOVER" }
+	],
+	"r2_buckets": [
+		{ "binding": "PHOTOS", "bucket_name": "foundsock-photos" }
+	],
 	"vars": {
-		"FRESHDESK_SUBDOMAIN": "eliranetinc"
+		"FRESHDESK_SUBDOMAIN": "eliranetinc",
+		"CF_ACCESS_TEAM_DOMAIN": "REPLACE_AT_CUTOVER.cloudflareaccess.com",
+		"CF_ACCESS_AUD": "REPLACE_AT_CUTOVER"
 	}
 }
