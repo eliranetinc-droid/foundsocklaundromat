@@ -46,5 +46,6 @@ Disallow: /
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /admin/
 
 Sitemap: https://www.foundsocklaundromat.com/sitemap-index.xml
