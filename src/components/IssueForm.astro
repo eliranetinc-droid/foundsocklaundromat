@@ -1,7 +1,7 @@
 ---
 // Detailed "Report an Issue" form — all fields required, with conditional fields
-// enforced only when visible. Submits as multipart/form-data to /api/submit-issue
-// which forwards to Freshdesk with attachment.
+// enforced only when visible. Submits as multipart/form-data to /api/submit-issue/
+// which creates a helpdesk ticket (photo stored in R2).
 
 const machineTypes = ['Washer', 'Dryer', 'Vending Machine', 'Touch Screen Kiosk'];
 const washerNumbers = Array.from({ length: 20 }, (_, i) => String(i + 1));
