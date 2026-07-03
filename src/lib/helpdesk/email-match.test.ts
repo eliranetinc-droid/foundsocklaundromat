@@ -33,6 +33,9 @@ describe('isAutoEmail', () => {
   test('normal mail passes', () => {
     expect(isAutoEmail({ from: 'jane@gmail.com', autoSubmitted: null })).toBe(false);
     expect(isAutoEmail({ from: 'jane@gmail.com', autoSubmitted: 'no' })).toBe(false);
+    // "reply" as a bare substring must not blackhole legitimate senders
+    expect(isAutoEmail({ from: 'newsletter-reply@brand.com', autoSubmitted: null })).toBe(false);
+    expect(isAutoEmail({ from: 'replyto@brand.com', autoSubmitted: null })).toBe(false);
   });
 });
 
@@ -54,5 +57,9 @@ describe('stripQuotedReply', () => {
 describe('htmlToText', () => {
   test('strips tags, keeps text, collapses whitespace', () => {
     expect(htmlToText('<div>Hello <b>world</b><br>bye</div>')).toBe('Hello world\nbye');
+  });
+  test('does not double-decode escaped entities', () => {
+    expect(htmlToText('&amp;lt;')).toBe('&lt;');
+    expect(htmlToText('a &amp; b &lt; c')).toBe('a & b < c');
   });
 });

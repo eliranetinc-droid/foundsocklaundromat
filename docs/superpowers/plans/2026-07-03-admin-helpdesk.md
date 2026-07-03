@@ -342,6 +342,9 @@ describe('isAutoEmail', () => {
   test('normal mail passes', () => {
     expect(isAutoEmail({ from: 'jane@gmail.com', autoSubmitted: null })).toBe(false);
     expect(isAutoEmail({ from: 'jane@gmail.com', autoSubmitted: 'no' })).toBe(false);
+    // "reply" as a bare substring must not blackhole legitimate senders
+    expect(isAutoEmail({ from: 'newsletter-reply@brand.com', autoSubmitted: null })).toBe(false);
+    expect(isAutoEmail({ from: 'replyto@brand.com', autoSubmitted: null })).toBe(false);
   });
 });
 
@@ -363,6 +366,10 @@ describe('stripQuotedReply', () => {
 describe('htmlToText', () => {
   test('strips tags, keeps text, collapses whitespace', () => {
     expect(htmlToText('<div>Hello <b>world</b><br>bye</div>')).toBe('Hello world\nbye');
+  });
+  test('does not double-decode escaped entities', () => {
+    expect(htmlToText('&amp;lt;')).toBe('&lt;');
+    expect(htmlToText('a &amp; b &lt; c')).toBe('a & b < c');
   });
 });
 ```
@@ -425,13 +432,16 @@ export function stripQuotedReply(text: string): string {
   return stripped.length > 0 ? stripped : full;
 }
 
+const ENTITIES: Record<string, string> = { nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'" };
+
 /** Minimal HTML → text for html-only emails. */
 export function htmlToText(html: string): string {
   return (html ?? '')
     .replace(/<(br|\/p|\/div|\/tr|\/li)[^>]*>/gi, '\n')
     .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    // Single-pass decode: replacements are never re-scanned, so escaped
+    // entities like "&amp;lt;" correctly become the literal text "&lt;".
+    .replace(/&(nbsp|amp|lt|gt|quot|#39);/g, (_m, e: string) => ENTITIES[e])
     .split('\n').map((l) => l.trim()).join('\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
@@ -443,7 +453,7 @@ export function htmlToText(html: string): string {
 ```bash
 npm test -- email-match
 ```
-Expected: PASS (10 tests; full suite 42).
+Expected: PASS (11 tests; full suite 43).
 
 - [ ] **Step 5: Commit**
 
@@ -2192,7 +2202,7 @@ Expected: `clean`.
 ```bash
 npm run build && npm test
 ```
-Expected: build Complete!; tests pass with 0 failures (freshdesk tests gone; 32 new helpdesk tests present — roughly 55 total).
+Expected: build Complete!; tests pass with 0 failures (freshdesk tests gone; 33 new helpdesk tests present — roughly 56 total).
 
 - [ ] **Step 4: Commit**
 

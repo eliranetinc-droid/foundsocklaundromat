@@ -24,6 +24,9 @@ export function isAutoEmail(input: { from: string; autoSubmitted: string | null 
   return /(^|[.@_-])(mailer-daemon|postmaster|no-?reply|do-?not-?reply)([.@_-]|$)/i.test(input.from ?? '');
 }
 
+// Known false-positive tradeoff (accepted): a customer line starting with
+// "From: ..." or a pasted ">"-prefixed snippet will truncate the body early.
+// Rare for this audience; do not widen these patterns casually.
 const QUOTE_MARKERS = [
   /^\s*>/,
   /^On .{0,300} wrote:\s*$/,
@@ -46,13 +49,16 @@ export function stripQuotedReply(text: string): string {
   return stripped.length > 0 ? stripped : full;
 }
 
+const ENTITIES: Record<string, string> = { nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'" };
+
 /** Minimal HTML → text for html-only emails. */
 export function htmlToText(html: string): string {
   return (html ?? '')
     .replace(/<(br|\/p|\/div|\/tr|\/li)[^>]*>/gi, '\n')
     .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    // Single-pass decode: replacements are never re-scanned, so escaped
+    // entities like "&amp;lt;" correctly become the literal text "&lt;".
+    .replace(/&(nbsp|amp|lt|gt|quot|#39);/g, (_m, e: string) => ENTITIES[e])
     .split('\n').map((l) => l.trim()).join('\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
