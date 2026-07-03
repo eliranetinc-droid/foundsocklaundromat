@@ -34,7 +34,7 @@ const isIssue = kind === 'issue';
       status.textContent = 'Sending...';
 
       try {
-        const res = await fetch('/api/submit-ticket', {
+        const res = await fetch('/api/submit-ticket/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...data, type: kind }),

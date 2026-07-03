@@ -1254,7 +1254,7 @@ Expected: build Complete!; all tests pass. (Freshdesk lib still present but now 
 ```bash
 npm run dev &
 sleep 6
-curl -s -X POST http://localhost:4321/api/submit-ticket -H 'Content-Type: application/json' \
+curl -s -X POST http://localhost:4321/api/submit-ticket/ -H 'Content-Type: application/json' \
   -d '{"name":"Test","email":"t@example.com","message":"local pipeline check","type":"general"}'
 kill %1
 ```
@@ -1330,10 +1330,11 @@ export const POST: APIRoute = async ({ request }) => {
     <Footer />
     <script is:inline>
       // First-party pageview ping. No cookies, no identifiers. ~200 bytes.
+      // NOTE: trailing slash is canonical (trailingSlash:'always') — avoids a 308.
       if (!location.pathname.startsWith('/admin')) {
         addEventListener('load', function () {
           try {
-            navigator.sendBeacon('/api/pv', JSON.stringify({ p: location.pathname, r: document.referrer }));
+            navigator.sendBeacon('/api/pv/', JSON.stringify({ p: location.pathname, r: document.referrer }));
           } catch (e) {}
         });
       }
@@ -1359,9 +1360,9 @@ Sitemap: https://www.foundsocklaundromat.com/sitemap-index.xml
 npm run build
 npm run dev &
 sleep 6
-curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:4321/api/pv \
+curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:4321/api/pv/ \
   -H 'User-Agent: Mozilla/5.0 (iPhone)' -d '{"p":"/pricing/","r":"https://www.google.com/"}'
-curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:4321/api/pv \
+curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:4321/api/pv/ \
   -H 'User-Agent: Googlebot' -d '{"p":"/pricing/"}'
 kill %1
 ```
@@ -1705,7 +1706,8 @@ import type { APIRoute } from 'astro';
 import { getHelpdeskEnv } from '../../../../lib/helpdesk/env';
 
 export const GET: APIRoute = async ({ params }) => {
-  const key = params.key ?? '';
+  // trailingSlash:'always' can hand us the key with a trailing slash — strip it.
+  const key = (params.key ?? '').replace(/\/$/, '');
   // Only our two known prefixes are servable.
   if (!/^(form|inbound)\/[\w-]+\/[\w.\-]+$/.test(key)) return new Response('Not found', { status: 404 });
 
@@ -2045,18 +2047,18 @@ const atts = (json: string | null): string[] => { try { return JSON.parse(json ?
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!ta.value.trim()) return;
-    if (await post('/api/admin/reply', { ticketId, body: ta.value })) location.reload();
+    if (await post('/api/admin/reply/', { ticketId, body: ta.value })) location.reload();
   });
 
   document.getElementById('noteBtn')!.addEventListener('click', async () => {
     if (!ta.value.trim()) return;
-    if (await post('/api/admin/note', { ticketId, body: ta.value })) location.reload();
+    if (await post('/api/admin/note/', { ticketId, body: ta.value })) location.reload();
   });
 
   const statusBtn = document.getElementById('statusBtn') as HTMLButtonElement;
   statusBtn.addEventListener('click', async () => {
     const next = statusBtn.dataset.status === 'open' ? 'closed' : 'open';
-    if (await post('/api/admin/status', { ticketId, status: next })) location.reload();
+    if (await post('/api/admin/status/', { ticketId, status: next })) location.reload();
   });
 </script>
 ```
@@ -2240,10 +2242,10 @@ grep -c 'Disallow: /admin/' dist/client/robots.txt             # expect 1
 npm run dev &
 sleep 6
 # form → ticket
-curl -s -X POST http://localhost:4321/api/submit-ticket -H 'Content-Type: application/json' \
+curl -s -X POST http://localhost:4321/api/submit-ticket/ -H 'Content-Type: application/json' \
   -d '{"name":"E2E","email":"e2e@example.com","message":"verification pass","type":"general"}'
 # beacon
-curl -s -o /dev/null -w "pv:%{http_code}\n" -X POST http://localhost:4321/api/pv -H 'User-Agent: Mozilla/5.0' -d '{"p":"/","r":""}'
+curl -s -o /dev/null -w "pv:%{http_code}\n" -X POST http://localhost:4321/api/pv/ -H 'User-Agent: Mozilla/5.0' -d '{"p":"/","r":""}'
 # admin pages render
 curl -s http://localhost:4321/admin/ | grep -c 'Dashboard'
 curl -s http://localhost:4321/admin/tickets/ | grep -c 'E2E'
@@ -2310,7 +2312,7 @@ Watch the build in Workers & Pages → Deployments until success.
   6. Close the ticket in admin → have customer reply again → ticket reopens.
   7. Check mail headers on a received customer email (Show original in Gmail): SPF pass, DKIM pass (d=foundsocklaundromat.com), DMARC pass; owner's personal address appears NOWHERE.
   8. Browse 3–4 public pages → `/admin/analytics` shows the views.
-  9. `curl -s https://www.foundsocklaundromat.com/api/admin/reply -X POST` signed-out → 403 (or Access redirect HTML) — API not open.
+  9. `curl -s https://www.foundsocklaundromat.com/api/admin/reply/ -X POST` signed-out → 403 (or Access redirect HTML) — API not open.
   10. PageSpeed mobile + desktop on `https://www.foundsocklaundromat.com/` → still 100 across the board (beacon must not regress scores).
 - [ ] **Step 9: Rollback note (only if something is broken and unfixable quickly):** `git revert` the cutover commits and push — forms return to Freshdesk behavior only if the Freshdesk removal commit (Task 16) is included in the revert range and `FRESHDESK_API_KEY` still exists; otherwise fix forward. Prefer fix-forward for anything cosmetic.
 
