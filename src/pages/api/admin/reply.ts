@@ -9,6 +9,9 @@ import { sendEmail } from '../../../lib/helpdesk/resend';
 const json = (body: object, status: number) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
+// CSRF note: Astro's checkOrigin only guards form-like content types; these
+// JSON routes are protected by Cloudflare Access (edge) + the Access-JWT
+// middleware — do NOT copy this pattern to a non-Access-gated endpoint.
 export const POST: APIRoute = async ({ request }) => {
   let payload: { ticketId?: string; body?: string };
   try {
