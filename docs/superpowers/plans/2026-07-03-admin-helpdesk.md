@@ -2220,7 +2220,9 @@ Expected: build Complete!; tests pass with 0 failures (freshdesk tests gone; 31 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add -A
+# git rm already staged the deletions; add only the config edit.
+# Do NOT use `git add -A` — an unrelated deletion (public/photos/og/default.jpg) must stay unstaged.
+git add wrangler.jsonc
 git commit -m "chore(helpdesk): remove Freshdesk integration (replaced by self-hosted helpdesk)"
 ```
 
