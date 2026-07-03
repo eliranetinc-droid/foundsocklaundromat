@@ -15,15 +15,15 @@ const sourceBadge: Record<string, string> = { 'issue-form': 'Issue', 'contact-fo
   <div class="flex items-center justify-between mb-6">
     <h1 class="text-3xl font-bold tracking-tight">Tickets</h1>
     <div class="flex gap-2 text-sm font-semibold">
-      <a href="/admin/tickets" class:list={['px-4 py-2 rounded-full border', status === 'open' ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white border-line']}>Open</a>
-      <a href="/admin/tickets?status=closed" class:list={['px-4 py-2 rounded-full border', status === 'closed' ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white border-line']}>Closed</a>
+      <a href="/admin/tickets/" class:list={['px-4 py-2 rounded-full border', status === 'open' ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white border-line']}>Open</a>
+      <a href="/admin/tickets/?status=closed" class:list={['px-4 py-2 rounded-full border', status === 'closed' ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white border-line']}>Closed</a>
     </div>
   </div>
 
   {tickets.length === 0 && <p class="text-sm opacity-60">No {status} tickets.</p>}
   <div class="space-y-2">
     {tickets.map(t => (
-      <a href={`/admin/tickets/${t.id}`} class="block bg-white rounded-xl border border-line px-4 py-3 hover:border-brand-blue/40">
+      <a href={`/admin/tickets/${t.id}/`} class="block bg-white rounded-xl border border-line px-4 py-3 hover:border-brand-blue/40">
         <div class="flex items-center justify-between gap-3 mb-0.5">
           <div class="flex items-center gap-2 min-w-0">
             {t.unread === 1 && <span class="w-2 h-2 rounded-full bg-brand-red shrink-0" title="Unread"></span>}

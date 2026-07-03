@@ -19,11 +19,11 @@ const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { month: 'sho
   <h1 class="text-3xl font-bold tracking-tight mb-6">Dashboard</h1>
 
   <div class="grid grid-cols-2 gap-4 mb-8 max-w-md">
-    <a href="/admin/tickets" class="bg-white rounded-2xl border border-line p-5 hover:border-brand-blue/40">
+    <a href="/admin/tickets/" class="bg-white rounded-2xl border border-line p-5 hover:border-brand-blue/40">
       <p class="text-4xl font-bold">{openCount}</p>
       <p class="text-xs uppercase tracking-widest opacity-60 mt-1">Open tickets</p>
     </a>
-    <a href="/admin/tickets" class="bg-white rounded-2xl border border-line p-5 hover:border-brand-blue/40">
+    <a href="/admin/tickets/" class="bg-white rounded-2xl border border-line p-5 hover:border-brand-blue/40">
       <p class="text-4xl font-bold text-brand-red">{unreadCount}</p>
       <p class="text-xs uppercase tracking-widest opacity-60 mt-1">Unread</p>
     </a>
@@ -44,7 +44,7 @@ const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { month: 'sho
   <div class="space-y-2">
     {recent.length === 0 && <p class="text-sm opacity-60">No messages yet.</p>}
     {recent.map(m => (
-      <a href={`/admin/tickets/${m.ticket_id}`} class="block bg-white rounded-xl border border-line px-4 py-3 hover:border-brand-blue/40">
+      <a href={`/admin/tickets/${m.ticket_id}/`} class="block bg-white rounded-xl border border-line px-4 py-3 hover:border-brand-blue/40">
         <div class="flex justify-between gap-3 text-xs opacity-60 mb-0.5">
           <span>{m.public_id} · {m.customer_name} · {m.direction === 'inbound' ? 'customer' : 'you'}</span>
           <span>{fmt(m.created_at)}</span>

@@ -27,7 +27,7 @@ const details: [string, string | null][] = [
 const atts = (json: string | null): string[] => { try { return JSON.parse(json ?? '[]'); } catch { return []; } };
 ---
 <AdminLayout title={ticket.public_id}>
-  <a href="/admin/tickets" class="text-sm text-brand-blue font-semibold hover:text-brand-red">← All tickets</a>
+  <a href="/admin/tickets/" class="text-sm text-brand-blue font-semibold hover:text-brand-red">← All tickets</a>
 
   <div class="flex items-start justify-between gap-4 mt-2 mb-5">
     <div>

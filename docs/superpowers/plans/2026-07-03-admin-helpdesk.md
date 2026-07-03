@@ -1760,11 +1760,11 @@ import '../../styles/global.css';
 export interface Props { title: string; }
 const { title } = Astro.props;
 const nav = [
-  { href: '/admin', label: 'Dashboard' },
-  { href: '/admin/tickets', label: 'Tickets' },
-  { href: '/admin/analytics', label: 'Analytics' },
+  { href: '/admin/', label: 'Dashboard' },
+  { href: '/admin/tickets/', label: 'Tickets' },
+  { href: '/admin/analytics/', label: 'Analytics' },
 ];
-const path = Astro.url.pathname.replace(/\/$/, '');
+const path = Astro.url.pathname.endsWith('/') ? Astro.url.pathname : Astro.url.pathname + '/';
 ---
 <!doctype html>
 <html lang="en">
@@ -1778,7 +1778,7 @@ const path = Astro.url.pathname.replace(/\/$/, '');
   <body class="bg-cream text-brand-blue-darker antialiased min-h-screen">
     <header class="bg-brand-blue-darker text-white">
       <div class="max-w-5xl mx-auto px-5 py-3 flex items-center justify-between">
-        <a href="/admin" class="font-bold tracking-tight">Found Sock <span class="opacity-60 font-normal">Admin</span></a>
+        <a href="/admin/" class="font-bold tracking-tight">Found Sock <span class="opacity-60 font-normal">Admin</span></a>
         <nav class="flex gap-5 text-sm">
           {nav.map(item => (
             <a href={item.href}
@@ -1821,11 +1821,11 @@ const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { month: 'sho
   <h1 class="text-3xl font-bold tracking-tight mb-6">Dashboard</h1>
 
   <div class="grid grid-cols-2 gap-4 mb-8 max-w-md">
-    <a href="/admin/tickets" class="bg-white rounded-2xl border border-line p-5 hover:border-brand-blue/40">
+    <a href="/admin/tickets/" class="bg-white rounded-2xl border border-line p-5 hover:border-brand-blue/40">
       <p class="text-4xl font-bold">{openCount}</p>
       <p class="text-xs uppercase tracking-widest opacity-60 mt-1">Open tickets</p>
     </a>
-    <a href="/admin/tickets" class="bg-white rounded-2xl border border-line p-5 hover:border-brand-blue/40">
+    <a href="/admin/tickets/" class="bg-white rounded-2xl border border-line p-5 hover:border-brand-blue/40">
       <p class="text-4xl font-bold text-brand-red">{unreadCount}</p>
       <p class="text-xs uppercase tracking-widest opacity-60 mt-1">Unread</p>
     </a>
@@ -1846,7 +1846,7 @@ const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { month: 'sho
   <div class="space-y-2">
     {recent.length === 0 && <p class="text-sm opacity-60">No messages yet.</p>}
     {recent.map(m => (
-      <a href={`/admin/tickets/${m.ticket_id}`} class="block bg-white rounded-xl border border-line px-4 py-3 hover:border-brand-blue/40">
+      <a href={`/admin/tickets/${m.ticket_id}/`} class="block bg-white rounded-xl border border-line px-4 py-3 hover:border-brand-blue/40">
         <div class="flex justify-between gap-3 text-xs opacity-60 mb-0.5">
           <span>{m.public_id} · {m.customer_name} · {m.direction === 'inbound' ? 'customer' : 'you'}</span>
           <span>{fmt(m.created_at)}</span>
@@ -1878,15 +1878,15 @@ const sourceBadge: Record<string, string> = { 'issue-form': 'Issue', 'contact-fo
   <div class="flex items-center justify-between mb-6">
     <h1 class="text-3xl font-bold tracking-tight">Tickets</h1>
     <div class="flex gap-2 text-sm font-semibold">
-      <a href="/admin/tickets" class:list={['px-4 py-2 rounded-full border', status === 'open' ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white border-line']}>Open</a>
-      <a href="/admin/tickets?status=closed" class:list={['px-4 py-2 rounded-full border', status === 'closed' ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white border-line']}>Closed</a>
+      <a href="/admin/tickets/" class:list={['px-4 py-2 rounded-full border', status === 'open' ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white border-line']}>Open</a>
+      <a href="/admin/tickets/?status=closed" class:list={['px-4 py-2 rounded-full border', status === 'closed' ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white border-line']}>Closed</a>
     </div>
   </div>
 
   {tickets.length === 0 && <p class="text-sm opacity-60">No {status} tickets.</p>}
   <div class="space-y-2">
     {tickets.map(t => (
-      <a href={`/admin/tickets/${t.id}`} class="block bg-white rounded-xl border border-line px-4 py-3 hover:border-brand-blue/40">
+      <a href={`/admin/tickets/${t.id}/`} class="block bg-white rounded-xl border border-line px-4 py-3 hover:border-brand-blue/40">
         <div class="flex items-center justify-between gap-3 mb-0.5">
           <div class="flex items-center gap-2 min-w-0">
             {t.unread === 1 && <span class="w-2 h-2 rounded-full bg-brand-red shrink-0" title="Unread"></span>}
@@ -1961,7 +1961,7 @@ const details: [string, string | null][] = [
 const atts = (json: string | null): string[] => { try { return JSON.parse(json ?? '[]'); } catch { return []; } };
 ---
 <AdminLayout title={ticket.public_id}>
-  <a href="/admin/tickets" class="text-sm text-brand-blue font-semibold hover:text-brand-red">← All tickets</a>
+  <a href="/admin/tickets/" class="text-sm text-brand-blue font-semibold hover:text-brand-red">← All tickets</a>
 
   <div class="flex items-start justify-between gap-4 mt-2 mb-5">
     <div>
