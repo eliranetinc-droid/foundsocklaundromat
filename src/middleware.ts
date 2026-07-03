@@ -23,7 +23,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (!token) return forbidden();
 
     jwks ??= createRemoteJWKSet(new URL(`https://${teamDomain}/cdn-cgi/access/certs`));
-    await jwtVerify(token, jwks, { audience: aud, issuer: `https://${teamDomain}` });
+    // algorithms pin = defense-in-depth vs future JWKS content changes (Access signs RS256)
+    await jwtVerify(token, jwks, { audience: aud, issuer: `https://${teamDomain}`, algorithms: ['RS256'] });
     return next();
   } catch {
     return forbidden();

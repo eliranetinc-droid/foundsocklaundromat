@@ -1190,7 +1190,8 @@ export const POST: APIRoute = async ({ request }) => {
     return jsonResponse({ ok: true, ticketId: publicId }, 200);
   } catch (e) {
     console.error('[submit-issue] uncaught error:', e);
-    return jsonResponse({ error: 'unexpected_error', detail: e instanceof Error ? e.message : String(e) }, 500);
+    // No detail echoed to the public: raw exception text can leak internals.
+    return jsonResponse({ error: 'unexpected_error' }, 500);
   }
 };
 ```
@@ -1237,7 +1238,8 @@ export const POST: APIRoute = async ({ request }) => {
     return jsonResponse({ ok: true, ticketId: publicId }, 200);
   } catch (e) {
     console.error('[submit-ticket] uncaught error:', e);
-    return jsonResponse({ error: 'unexpected_error', detail: e instanceof Error ? e.message : String(e) }, 500);
+    // No detail echoed to the public: raw exception text can leak internals.
+    return jsonResponse({ error: 'unexpected_error' }, 500);
   }
 };
 ```
@@ -1410,7 +1412,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (!token) return forbidden();
 
     jwks ??= createRemoteJWKSet(new URL(`https://${teamDomain}/cdn-cgi/access/certs`));
-    await jwtVerify(token, jwks, { audience: aud, issuer: `https://${teamDomain}` });
+    // algorithms pin = defense-in-depth vs future JWKS content changes (Access signs RS256)
+    await jwtVerify(token, jwks, { audience: aud, issuer: `https://${teamDomain}`, algorithms: ['RS256'] });
     return next();
   } catch {
     return forbidden();

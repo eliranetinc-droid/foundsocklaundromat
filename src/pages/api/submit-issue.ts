@@ -96,6 +96,7 @@ export const POST: APIRoute = async ({ request }) => {
     return jsonResponse({ ok: true, ticketId: publicId }, 200);
   } catch (e) {
     console.error('[submit-issue] uncaught error:', e);
-    return jsonResponse({ error: 'unexpected_error', detail: e instanceof Error ? e.message : String(e) }, 500);
+    // No detail echoed to the public: raw exception text can leak internals.
+    return jsonResponse({ error: 'unexpected_error' }, 500);
   }
 };
