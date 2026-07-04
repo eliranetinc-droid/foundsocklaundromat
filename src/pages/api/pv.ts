@@ -7,6 +7,12 @@ import { isBotUA, classifyDevice, referrerHost, isValidPath } from '../../lib/he
 
 const NO_CONTENT = () => new Response(null, { status: 204 });
 
+// CSRF note: sendBeacon posts text/plain, a form-like content type, so Astro's
+// checkOrigin applies — Origin-less POSTs (curl, most scrapers) get 403 before
+// reaching this handler. Real browser beacons are same-origin and pass. That
+// pre-filter is desirable here (cleaner analytics); tests must send an Origin
+// header or Content-Type: application/json.
+
 export const POST: APIRoute = async ({ request }) => {
   try {
     const ua = request.headers.get('user-agent');

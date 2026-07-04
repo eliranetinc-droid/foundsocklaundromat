@@ -2260,8 +2260,9 @@ sleep 6
 # form → ticket
 curl -s -X POST http://localhost:4321/api/submit-ticket/ -H 'Content-Type: application/json' \
   -d '{"name":"E2E","email":"e2e@example.com","message":"verification pass","type":"general"}'
-# beacon
-curl -s -o /dev/null -w "pv:%{http_code}\n" -X POST http://localhost:4321/api/pv/ -H 'User-Agent: Mozilla/5.0' -d '{"p":"/","r":""}'
+# beacon — Origin header required: sendBeacon's text/plain is form-like, so Astro
+# checkOrigin 403s Origin-less POSTs (good: it pre-filters curl/scraper junk).
+curl -s -o /dev/null -w "pv:%{http_code}\n" -X POST http://localhost:4321/api/pv/ -H 'User-Agent: Mozilla/5.0' -H 'Origin: http://localhost:4321' -H 'Content-Type: text/plain' -d '{"p":"/","r":""}'
 # admin pages render
 curl -s http://localhost:4321/admin/ | grep -c 'Dashboard'
 curl -s http://localhost:4321/admin/tickets/ | grep -c 'E2E'

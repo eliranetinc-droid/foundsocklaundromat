@@ -20,6 +20,9 @@ export default defineConfig({
       // Use the source file's mtime as a fallback lastmod so Google/Bing get a freshness hint.
       // Per-post lastmod from frontmatter could be added later via serialize().
       lastmod: new Date(),
+      // Admin pages are noindex + robots-disallowed; advertising them in the
+      // sitemap would trigger "indexed though blocked" warnings in GSC.
+      filter: (page) => !page.includes('/admin'),
     }),
   ],
 
