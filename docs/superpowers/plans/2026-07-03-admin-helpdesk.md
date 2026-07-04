@@ -2316,6 +2316,7 @@ This task is interactive (Cloudflare/Resend dashboards). Values produced here re
 ! grep -q REPLACE_AT_CUTOVER wrangler.jsonc || { echo "PLACEHOLDERS REMAIN in wrangler.jsonc — fill real values first"; exit 1; }
 git add wrangler.jsonc
 git commit -m "chore(helpdesk): cutover config (D1 id, Access team/aud)"
+git checkout main && git merge --ff-only feat/admin-helpdesk   # bring the whole feature branch onto main
 TOKEN=$(gh auth token --user eliranetinc-droid) && git push "https://x-access-token:${TOKEN}@github.com/eliranetinc-droid/foundsocklaundromat.git" main
 ```
 Watch the build in Workers & Pages → Deployments until success.
