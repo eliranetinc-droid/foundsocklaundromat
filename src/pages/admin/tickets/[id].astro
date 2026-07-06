@@ -34,11 +34,17 @@ const atts = (json: string | null): string[] => { try { return JSON.parse(json ?
       <h1 class="text-2xl font-bold tracking-tight">{ticket.subject}</h1>
       <p class="text-sm opacity-60">{ticket.public_id} · {ticket.customer_name}</p>
     </div>
-    <button id="statusBtn" data-ticket={ticket.id} data-status={ticket.status}
-      class:list={['text-sm font-bold px-5 py-2 rounded-full border shrink-0',
-        ticket.status === 'open' ? 'border-line bg-white hover:border-brand-blue/50' : 'bg-brand-blue text-white border-brand-blue']}>
-      {ticket.status === 'open' ? 'Close ticket' : 'Reopen ticket'}
-    </button>
+    <div class="flex gap-2 shrink-0">
+      <button id="refreshBtn" title="Check for new messages"
+        class="text-sm font-bold px-5 py-2 rounded-full border border-line bg-white hover:border-brand-blue/50">
+        ↻ Refresh
+      </button>
+      <button id="statusBtn" data-ticket={ticket.id} data-status={ticket.status}
+        class:list={['text-sm font-bold px-5 py-2 rounded-full border',
+          ticket.status === 'open' ? 'border-line bg-white hover:border-brand-blue/50' : 'bg-brand-blue text-white border-brand-blue']}>
+        {ticket.status === 'open' ? 'Close ticket' : 'Reopen ticket'}
+      </button>
+    </div>
   </div>
 
   <div class="bg-white rounded-2xl border border-line p-5 mb-6">
@@ -131,6 +137,8 @@ const atts = (json: string | null): string[] => { try { return JSON.parse(json ?
     if (!ta.value.trim()) return;
     if (await post('/api/admin/note/', { ticketId, body: ta.value })) location.reload();
   });
+
+  document.getElementById('refreshBtn')!.addEventListener('click', () => location.reload());
 
   const statusBtn = document.getElementById('statusBtn') as HTMLButtonElement;
   statusBtn.addEventListener('click', async () => {
