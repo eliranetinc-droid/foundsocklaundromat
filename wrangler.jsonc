@@ -12,13 +12,13 @@
 		"enabled": true
 	},
 	"d1_databases": [
-		{ "binding": "DB", "database_name": "foundsock-helpdesk", "database_id": "REPLACE_AT_CUTOVER" }
+		{ "binding": "DB", "database_name": "foundsock-helpdesk", "database_id": "dbeb1877-49bd-4995-8bdf-7ca7bc1ed783" }
 	],
 	"r2_buckets": [
 		{ "binding": "PHOTOS", "bucket_name": "foundsock-photos" }
 	],
 	"vars": {
-		"CF_ACCESS_TEAM_DOMAIN": "REPLACE_AT_CUTOVER.cloudflareaccess.com",
-		"CF_ACCESS_AUD": "REPLACE_AT_CUTOVER"
+		"CF_ACCESS_TEAM_DOMAIN": "foundsock.cloudflareaccess.com",
+		"CF_ACCESS_AUD": "99bf352d8b89acf064d02c50f225f4d6fdedc00bf452b364a236e589b11ad9ab"
 	}
 }
