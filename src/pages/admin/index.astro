@@ -13,7 +13,7 @@ const [openCount, unreadCount, recent, views] = await Promise.all([
   viewsByDay(env.DB, 14),
 ]);
 const maxViews = Math.max(1, ...views.map(v => v.views));
-const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 ---
 <AdminLayout title="Dashboard">
   <h1 class="text-3xl font-bold tracking-tight mb-6">Dashboard</h1>

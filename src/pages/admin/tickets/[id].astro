@@ -13,7 +13,7 @@ if (!ticket) return new Response('Not found', { status: 404 });
 const messages = await getMessages(env.DB, ticket.id);
 if (ticket.unread === 1) await markRead(env.DB, ticket.id);
 
-const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 const details: [string, string | null][] = [
   ['Email', ticket.customer_email],
   ['Phone', ticket.customer_phone],

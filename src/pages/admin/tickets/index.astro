@@ -8,7 +8,7 @@ import { listTickets } from '../../../lib/helpdesk/db';
 const status = Astro.url.searchParams.get('status') === 'closed' ? 'closed' : 'open';
 const env = await getHelpdeskEnv();
 const tickets = await listTickets(env.DB, status);
-const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 const sourceBadge: Record<string, string> = { 'issue-form': 'Issue', 'contact-form': 'Contact', email: 'Email' };
 ---
 <AdminLayout title="Tickets">
