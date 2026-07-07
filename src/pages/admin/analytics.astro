@@ -4,19 +4,19 @@ export const prerender = false;
 import AdminLayout from '../../components/admin/AdminLayout.astro';
 import AdminIcon from '../../components/admin/AdminIcon.astro';
 import { getHelpdeskEnv } from '../../lib/helpdesk/env';
-import { viewsByDay, topPages, topCountries, deviceSplit, referrers, hoursOfDay, viewsInRange, recentPageviews, countRecentViewers } from '../../lib/helpdesk/db';
+import { viewsByDay, topPages, topCountries, deviceSplit, referrers, hoursOfDay, viewsInRange, recentPageviews, countRecentViewers, getTimezone } from '../../lib/helpdesk/db';
 import { etDay } from '../../lib/helpdesk/pv';
 
 const periodParam = Astro.url.searchParams.get('period');
 const period = periodParam === '7' || periodParam === '90' ? Number(periodParam) : 30;
 
 const env = await getHelpdeskEnv();
-const [views, pages, countries, devices, refs, hours, recent, viewingNow] = await Promise.all([
+const [views, pages, countries, devices, refs, hours, recent, viewingNow, tz] = await Promise.all([
   viewsByDay(env.DB, period), topPages(env.DB, period), topCountries(env.DB, period),
   deviceSplit(env.DB, period), referrers(env.DB, period), hoursOfDay(env.DB, period),
-  recentPageviews(env.DB, 25), countRecentViewers(env.DB, 5),
+  recentPageviews(env.DB, 25), countRecentViewers(env.DB, 5), getTimezone(env.DB),
 ]);
-const visitTime = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const visitTime = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: tz, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
 const dayAgo = (n: number) => etDay(new Date(Date.now() - n * 86400000));
 const today = dayAgo(0);

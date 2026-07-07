@@ -6,12 +6,12 @@ import KpiTile from '../../components/admin/KpiTile.astro';
 import { getHelpdeskEnv } from '../../lib/helpdesk/env';
 import {
   countOpenTickets, recentMessages, viewsByDay, topPages,
-  ticketsPerDay, medianFirstReplyHours, needsAttention, countRecentViewers,
+  ticketsPerDay, medianFirstReplyHours, needsAttention, countRecentViewers, getTimezone,
 } from '../../lib/helpdesk/db';
 import { etDay } from '../../lib/helpdesk/pv';
 
 const env = await getHelpdeskEnv();
-const [openCount, recent, views14, pages, tix14, medHrs, attention, viewingNow] = await Promise.all([
+const [openCount, recent, views14, pages, tix14, medHrs, attention, viewingNow, tz] = await Promise.all([
   countOpenTickets(env.DB),
   recentMessages(env.DB, 8),
   viewsByDay(env.DB, 14),
@@ -20,11 +20,12 @@ const [openCount, recent, views14, pages, tix14, medHrs, attention, viewingNow] 
   medianFirstReplyHours(env.DB, 30),
   needsAttention(env.DB),
   countRecentViewers(env.DB, 5),
+  getTimezone(env.DB),
 ]);
 
 // Build gap-filled 14-day series (ET) for the sparklines. viewsByDay + ticketsPerDay
 // both key on ET days (etDay), so these exact-match lookups align.
-const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: tz, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 const days: string[] = Array.from({ length: 14 }, (_, i) => etDay(new Date(Date.now() - (13 - i) * 86400000)));
 const seriesFrom = (rows: { day?: string }[], key: 'views' | 'n') => {
   const map = new Map(rows.map((r: any) => [r.day, r[key] as number]));

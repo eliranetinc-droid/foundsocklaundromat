@@ -2,19 +2,29 @@
 export const prerender = false;
 
 import AdminLayout from '../../components/admin/AdminLayout.astro';
-import { getHelpdeskEnv } from '../../lib/helpdesk/env';
-import { getSetting } from '../../lib/helpdesk/db';
+import { getHelpdeskEnv, ADMIN_TIMEZONES } from '../../lib/helpdesk/env';
+import { getSetting, getTimezone } from '../../lib/helpdesk/db';
 
 const env = await getHelpdeskEnv();
-const [aiEnabled, houseRules] = await Promise.all([
+const [aiEnabled, houseRules, timezone] = await Promise.all([
   getSetting(env.DB, 'ai_enabled'),
   getSetting(env.DB, 'house_rules'),
+  getTimezone(env.DB),
 ]);
 const enabled = aiEnabled !== '0'; // default on
 const hasKey = !!(env as any).ANTHROPIC_API_KEY;
 ---
 <AdminLayout title="Settings">
   <h1 class="text-2xl font-bold tracking-tight mb-5">Settings</h1>
+
+  <section class="bg-white rounded-2xl border border-line shadow-sm p-5 mb-5 max-w-2xl">
+    <h2 class="text-sm font-bold mb-1">General</h2>
+    <p class="text-sm opacity-60 mb-4">Times shown on tickets, messages, and recent visits use this timezone.</p>
+    <label class="text-xs font-bold uppercase tracking-wider text-brand-blue block mb-2">Timezone</label>
+    <select id="timezone" class="w-full sm:w-80 border-[1.5px] border-line rounded-xl px-3.5 py-2.5 text-sm bg-white focus:border-brand-blue focus:outline-none">
+      {ADMIN_TIMEZONES.map(tz => <option value={tz.value} selected={tz.value === timezone}>{tz.label}</option>)}
+    </select>
+  </section>
 
   <section class="bg-white rounded-2xl border border-line shadow-sm p-5 mb-5 max-w-2xl">
     <h2 class="text-sm font-bold mb-1">AI reply assistant</h2>
@@ -47,6 +57,7 @@ const hasKey = !!(env as any).ANTHROPIC_API_KEY;
 <script>
   const enabledEl = document.getElementById('aiEnabled') as HTMLInputElement;
   const rulesEl = document.getElementById('houseRules') as HTMLTextAreaElement;
+  const tzEl = document.getElementById('timezone') as HTMLSelectElement;
   const statusEl = document.getElementById('saveStatus')!;
   let saving = false;
   document.getElementById('saveBtn')!.addEventListener('click', async () => {
@@ -55,9 +66,11 @@ const hasKey = !!(env as any).ANTHROPIC_API_KEY;
     try {
       const res = await fetch('/api/admin/settings/', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ aiEnabled: enabledEl.checked, houseRules: rulesEl.value }),
+        body: JSON.stringify({ aiEnabled: enabledEl.checked, houseRules: rulesEl.value, timezone: tzEl.value }),
       });
-      statusEl.textContent = res.ok ? 'Saved ✓' : 'Failed — try again.';
+      // Reload on success so every timestamp on the page re-renders in the new zone.
+      if (res.ok) { statusEl.textContent = 'Saved ✓'; location.reload(); }
+      else statusEl.textContent = 'Failed — try again.';
     } catch {
       statusEl.textContent = 'Failed — try again.';
     }

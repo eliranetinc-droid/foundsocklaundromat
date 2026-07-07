@@ -242,6 +242,11 @@ export async function getSetting(db: D1Database, key: string): Promise<string | 
 export const setSetting = (db: D1Database, key: string, value: string) =>
   db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`).bind(key, value).run();
 
+/** Admin display timezone (IANA). Defaults to the laundromat's Eastern zone. */
+export async function getTimezone(db: D1Database): Promise<string> {
+  return (await getSetting(db, 'timezone')) ?? 'America/New_York';
+}
+
 export async function insertDraft(db: D1Database, d: { ticketId: string; triggerMessageId: number | null; body: string; model: string }): Promise<number> {
   const r = await db.prepare(
     `INSERT INTO ai_drafts (ticket_id, trigger_message_id, body, status, model, created_at) VALUES (?, ?, ?, 'suggested', ?, ?) RETURNING id`
