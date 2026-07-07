@@ -7,48 +7,102 @@ import { getHelpdeskEnv } from '../../lib/helpdesk/env';
 import {
   countOpenTickets, recentMessages, viewsByDay, topPages,
   ticketsPerDay, medianFirstReplyHours, needsAttention, countRecentViewers, getTimezone,
+  ticketsByMachine, aiDraftStats, resolutionStats, sourceSplit, hoursOfDay, viewsInRange,
 } from '../../lib/helpdesk/db';
 import { etDay } from '../../lib/helpdesk/pv';
 
+const periodParam = Astro.url.searchParams.get('period');
+const period = periodParam === 'today' || periodParam === '30' ? periodParam : '7';
+const winDays = period === 'today' ? 1 : Number(period);
+
 const env = await getHelpdeskEnv();
-const [openCount, recent, views14, pages, tix14, medHrs, attention, viewingNow, tz] = await Promise.all([
+const [openCount, recent, pages, medHrs, attention, viewingNow, tz, machines, ai, res, sources] = await Promise.all([
   countOpenTickets(env.DB),
   recentMessages(env.DB, 8),
-  viewsByDay(env.DB, 14),
-  topPages(env.DB, 14, 5),
-  ticketsPerDay(env.DB, 14),
+  topPages(env.DB, winDays, 5),
   medianFirstReplyHours(env.DB, 30),
   needsAttention(env.DB),
   countRecentViewers(env.DB, 5),
   getTimezone(env.DB),
+  ticketsByMachine(env.DB, 90),
+  aiDraftStats(env.DB, 30),
+  resolutionStats(env.DB, 90),
+  sourceSplit(env.DB, 30),
 ]);
 
-// Build gap-filled 14-day series (ET) for the sparklines. viewsByDay + ticketsPerDay
-// both key on ET days (etDay), so these exact-match lookups align.
 const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: tz, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-const days: string[] = Array.from({ length: 14 }, (_, i) => etDay(new Date(Date.now() - (13 - i) * 86400000)));
-const seriesFrom = (rows: { day?: string }[], key: 'views' | 'n') => {
-  const map = new Map(rows.map((r: any) => [r.day, r[key] as number]));
-  return days.map(d => map.get(d) ?? 0);
-};
-const viewsSeries = seriesFrom(views14 as any, 'views');
-const tixSeries = seriesFrom(tix14 as any, 'n');
-const views7 = viewsSeries.slice(7).reduce((a, b) => a + b, 0);
-const viewsPrev7 = viewsSeries.slice(0, 7).reduce((a, b) => a + b, 0);
-const tix7 = tixSeries.slice(7).reduce((a, b) => a + b, 0);
-const tixPrev7 = tixSeries.slice(0, 7).reduce((a, b) => a + b, 0);
+const dayAgo = (n: number) => etDay(new Date(Date.now() - n * 86400000));
 const maxPage = Math.max(1, ...pages.map(p => p.views));
 
 const age = (iso: string) => {
   const h = (Date.now() - Date.parse(iso)) / 3_600_000;
   return h < 1 ? `${Math.max(1, Math.round(h * 60))}m` : h < 48 ? `${Math.round(h)}h` : `${Math.round(h / 24)}d`;
 };
+
+// ---- KPI plumbing, generalized by period ----
+let visitorsVal: number, visitorsPrev: number, visitorsSpark: number[];
+let ticketsVal: number, ticketsPrev: number, ticketsSpark: number[];
+let periodLabel: string;
+let hourArr: number[] = [];
+const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`);
+
+if (period === 'today') {
+  periodLabel = 'Today';
+  const today = dayAgo(0);
+  const yesterday = dayAgo(1);
+  const [hours, todayViews, yesterdayViews] = await Promise.all([
+    hoursOfDay(env.DB, 1),
+    viewsInRange(env.DB, today, today),
+    viewsInRange(env.DB, yesterday, yesterday),
+  ]);
+  hourArr = Array.from({ length: 24 }, (_, h) => hours.find(x => x.hour === h)?.views ?? 0);
+  visitorsVal = todayViews;
+  visitorsPrev = yesterdayViews;
+  visitorsSpark = hourArr;
+
+  // Tickets: bucket today's/yesterday's tickets from a 2-day fetch (ET days).
+  const tix2 = await ticketsPerDay(env.DB, 2);
+  const tmap = new Map(tix2.map(r => [r.day, r.n]));
+  ticketsVal = tmap.get(today) ?? 0;
+  ticketsPrev = tmap.get(yesterday) ?? 0;
+  ticketsSpark = hourArr; // no hourly ticket series available; reuse traffic shape for visual continuity
+} else {
+  periodLabel = `${winDays}d`;
+  const [views2x, tix2x] = await Promise.all([
+    viewsByDay(env.DB, 2 * winDays),
+    ticketsPerDay(env.DB, 2 * winDays),
+  ]);
+  const etDays: string[] = Array.from({ length: 2 * winDays }, (_, i) => dayAgo(2 * winDays - 1 - i));
+  const seriesFrom = (rows: { day?: string }[], key: 'views' | 'n') => {
+    const map = new Map(rows.map((r: any) => [r.day, r[key] as number]));
+    return etDays.map(d => map.get(d) ?? 0);
+  };
+  const viewsSeriesFull = seriesFrom(views2x as any, 'views');
+  const tixSeriesFull = seriesFrom(tix2x as any, 'n');
+  visitorsSpark = viewsSeriesFull.slice(winDays);
+  ticketsSpark = tixSeriesFull.slice(winDays);
+  visitorsVal = visitorsSpark.reduce((a, b) => a + b, 0);
+  visitorsPrev = viewsSeriesFull.slice(0, winDays).reduce((a, b) => a + b, 0);
+  ticketsVal = ticketsSpark.reduce((a, b) => a + b, 0);
+  ticketsPrev = tixSeriesFull.slice(0, winDays).reduce((a, b) => a + b, 0);
+}
 ---
 <AdminLayout title="Dashboard">
+  <div class="flex items-center justify-end mb-3">
+    <div class="flex gap-1 bg-white border border-line rounded-full p-1 text-sm font-semibold">
+      {[{ key: 'today', label: 'Today' }, { key: '7', label: '7d' }, { key: '30', label: '30d' }].map(p => (
+        <a href={`/admin/?period=${p.key}`}
+           class:list={['px-3.5 py-1 rounded-full', period === p.key ? 'bg-brand-blue text-white' : 'text-brand-blue-darker/60 hover:text-brand-blue-darker']}>
+          {p.label}
+        </a>
+      ))}
+    </div>
+  </div>
+
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-    <KpiTile label="Visitors" value={views7} spark={viewsSeries} color="#2f6f9f" icon="eye" delta={{ current: views7, prev: viewsPrev7 }} />
-    <KpiTile label="Open" value={openCount} spark={tixSeries} color="#16a34a" icon="inbox" />
-    <KpiTile label="New · 7d" value={tix7} spark={tixSeries} color="#16a34a" icon="message" delta={{ current: tix7, prev: tixPrev7 }} />
+    <KpiTile label="Visitors" value={visitorsVal} spark={visitorsSpark} color="#2f6f9f" icon="eye" delta={{ current: visitorsVal, prev: visitorsPrev }} />
+    <KpiTile label="Open" value={openCount} spark={ticketsSpark} color="#16a34a" icon="inbox" />
+    <KpiTile label={`New · ${periodLabel}`} value={ticketsVal} spark={ticketsSpark} color="#16a34a" icon="message" delta={{ current: ticketsVal, prev: ticketsPrev }} />
     <KpiTile label="Avg reply" value={medHrs === null ? '—' : `${medHrs}h`} icon="clock" />
   </div>
 
@@ -76,7 +130,7 @@ const age = (iso: string) => {
     <section class="bg-white rounded-2xl border border-line shadow-sm">
       <div class="px-5 py-3.5 border-b border-line flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <h2 class="text-sm font-bold">Traffic · 14d</h2>
+          <h2 class="text-sm font-bold">Traffic · {periodLabel}</h2>
           {viewingNow > 0 && (
             <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
               <span class="relative flex w-2 h-2"><span class="absolute inline-flex w-full h-full rounded-full bg-emerald-400 opacity-75 animate-ping"></span><span class="relative inline-flex w-2 h-2 rounded-full bg-emerald-500"></span></span>
@@ -86,14 +140,73 @@ const age = (iso: string) => {
         </div>
         <a href="/admin/analytics/" class="text-xs font-medium text-brand-blue hover:text-brand-red">Analytics →</a>
       </div>
-      <div class="p-5 space-y-3">
-        {pages.length === 0 && <p class="text-sm opacity-50">No data yet.</p>}
-        {pages.map(p => (
-          <div>
-            <div class="flex justify-between text-xs mb-0.5"><span class="truncate">{p.path}</span><span class="opacity-55 ml-2 shrink-0">{p.views}</span></div>
-            <div class="h-1.5 bg-line rounded-full overflow-hidden"><div class="h-full bg-brand-blue rounded-full" style={`width:${Math.round((p.views / maxPage) * 100)}%`}></div></div>
+      {period === 'today' ? (
+        <div class="p-5">
+          <div class="flex items-end gap-[3px] h-24">
+            {hourArr.map((v, h) => (
+              <div class="flex-1 bg-brand-blue/70 hover:bg-brand-red rounded-t" style={`height:${Math.max(2, Math.round((v / Math.max(1, ...hourArr)) * 100))}%`} title={`${label12(h)}: ${v}`}></div>
+            ))}
+          </div>
+          <div class="flex justify-between text-[10px] opacity-45 mt-1"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>11p</span></div>
+        </div>
+      ) : (
+        <div class="p-5 space-y-3">
+          {pages.length === 0 && <p class="text-sm opacity-50">No data yet.</p>}
+          {pages.map(p => (
+            <div>
+              <div class="flex justify-between text-xs mb-0.5"><span class="truncate">{p.path}</span><span class="opacity-55 ml-2 shrink-0">{p.views}</span></div>
+              <div class="h-1.5 bg-line rounded-full overflow-hidden"><div class="h-full bg-brand-blue rounded-full" style={`width:${Math.round((p.views / maxPage) * 100)}%`}></div></div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  </div>
+
+  <div class="grid lg:grid-cols-3 gap-4 mb-6">
+    <!-- Machine watch -->
+    <section class="bg-white rounded-2xl border border-line shadow-sm">
+      <div class="px-5 py-3.5 border-b border-line flex items-center justify-between">
+        <h2 class="text-sm font-bold">Machine watch <span class="font-normal opacity-45">90d</span></h2>
+      </div>
+      <div class="divide-y divide-line">
+        {machines.length === 0 && <p class="px-5 py-6 text-sm text-center opacity-50">No machine issues reported. 🎉</p>}
+        {machines.map((m, i) => (
+          <div class="flex items-center gap-3 px-5 py-2.5 text-sm">
+            <span class:list={['text-[10px] font-bold w-5 text-center shrink-0', i === 0 && m.n >= 3 ? 'text-brand-red' : 'opacity-40']}>{i + 1}</span>
+            <span class="truncate flex-1">{m.machine}</span>
+            <span class:list={['text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0', m.n >= 3 ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500']}>{m.n} issue{m.n === 1 ? '' : 's'}</span>
           </div>
         ))}
+      </div>
+    </section>
+
+    <!-- AI assistant scorecard -->
+    <section class="bg-white rounded-2xl border border-line shadow-sm">
+      <div class="px-5 py-3.5 border-b border-line"><h2 class="text-sm font-bold">AI assistant <span class="font-normal opacity-45">30d</span></h2></div>
+      <div class="p-5 space-y-2 text-sm">
+        <div class="flex justify-between"><span class="opacity-60">Drafts suggested</span><span class="font-bold">{ai.suggested + ai.used + ai.sent_as_is + ai.dismissed + ai.superseded}</span></div>
+        <div class="flex justify-between"><span class="opacity-60">Sent as-is</span><span class="font-bold text-emerald-700">{ai.sent_as_is}</span></div>
+        <div class="flex justify-between"><span class="opacity-60">Used &amp; edited</span><span class="font-bold">{ai.used}</span></div>
+        <div class="flex justify-between"><span class="opacity-60">Dismissed</span><span class="font-bold opacity-60">{ai.dismissed}</span></div>
+        {(ai.sent_as_is + ai.used) > 0 && (
+          <p class="text-xs opacity-55 pt-2 border-t border-line">The assistant handled {ai.sent_as_is + ai.used} repl{(ai.sent_as_is + ai.used) === 1 ? 'y' : 'ies'} for you.</p>
+        )}
+      </div>
+    </section>
+
+    <!-- Resolution + sources -->
+    <section class="bg-white rounded-2xl border border-line shadow-sm">
+      <div class="px-5 py-3.5 border-b border-line"><h2 class="text-sm font-bold">Resolution <span class="font-normal opacity-45">90d</span></h2></div>
+      <div class="p-5 space-y-2 text-sm">
+        <div class="flex justify-between"><span class="opacity-60">Median time to close</span><span class="font-bold">{res.medianCloseHours === null ? '—' : `${res.medianCloseHours}h`}</span></div>
+        <div class="flex justify-between"><span class="opacity-60">Closed within 24h</span><span class="font-bold">{res.pctWithin24h === null ? '—' : `${res.pctWithin24h}%`}</span></div>
+        <div class="flex justify-between"><span class="opacity-60">Tickets closed</span><span class="font-bold">{res.closedCount}</span></div>
+        <div class="pt-2 border-t border-line space-y-1.5">
+          {sources.map(s => (
+            <div class="flex justify-between text-xs"><span class="capitalize opacity-60">{s.source.replace('-', ' ')}</span><span class="font-semibold">{s.n}</span></div>
+          ))}
+        </div>
       </div>
     </section>
   </div>
@@ -123,6 +236,7 @@ const age = (iso: string) => {
 
 <script is:inline>
   // Gentle auto-refresh: only when the tab is visible, so a backgrounded admin
-  // doesn't reload endlessly. Read-only page — nothing to lose on reload.
+  // doesn't reload endlessly. Read-only page — nothing to lose on reload. The
+  // period stays in the URL query, so a reload preserves the selected view.
   setInterval(function () { if (document.visibilityState === 'visible') location.reload(); }, 30000);
 </script>
