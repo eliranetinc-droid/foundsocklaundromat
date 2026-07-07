@@ -3,6 +3,7 @@ import { newTicketId, newPublicId, newReplyToken } from './ids';
 import { createTicket, addMessage, type NewTicket } from './db';
 import { confirmationEmail, notificationEmail, type TicketSource } from './templates';
 import { sendEmail } from './resend';
+import { generateDraftForTicket } from './ai';
 
 export interface IntakeInput {
   source: TicketSource;
@@ -45,11 +46,14 @@ export async function intakeTicket(env: HelpdeskEnv, input: IntakeInput): Promis
     const sent = await sendEmail(env, { to: input.customerEmail, subject: conf.subject, text: conf.text, html: conf.html, replyToken });
     if (!sent.ok) console.error('[helpdesk] confirmation send failed:', sent.error);
   }
+  const aiDraft = await generateDraftForTicket(env, id, null);
+
   const note = notificationEmail({
     publicId, ticketId: id, kind: 'ticket', subject: input.subject,
     customerName: input.customerName, customerEmail: input.customerEmail, snippet: input.body,
     machine: input.fields?.machineType ? `${input.fields.machineType}${input.fields.machineNumber ? ' #' + input.fields.machineNumber : ''}` : null,
     source: input.source,
+    aiDraft,
   });
   const notified = await sendEmail(env, { to: env.NOTIFY_EMAIL, subject: note.subject, text: note.text, html: note.html });
   if (!notified.ok) console.error('[helpdesk] owner notification failed:', notified.error);

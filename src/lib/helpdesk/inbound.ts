@@ -6,6 +6,7 @@ import { findByReplyToken, findByPublicId, findOpenByEmail, addMessage, setStatu
 import { intakeTicket, sanitizeFilename } from './intake';
 import { notificationEmail } from './templates';
 import { sendEmail } from './resend';
+import { generateDraftForTicket } from './ai';
 
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 const MAX_ATTACHMENTS = 5;
@@ -83,12 +84,15 @@ export async function handleInboundEmail(message: ForwardableEmailMessage, env: 
   if (ticket.status === 'closed') await setStatus(env.DB, ticket.id, 'open');
   await touchActivity(env.DB, ticket.id, 1);
 
+  const aiDraft = await generateDraftForTicket(env, ticket.id, null);
+
   const note = notificationEmail({
     publicId: ticket.public_id, ticketId: ticket.id, kind: 'message',
     subject: ticket.subject, customerName: ticket.customer_name, customerEmail: ticket.customer_email,
     snippet: body || '[image attachment]',
     machine: ticket.machine_type ? `${ticket.machine_type}${ticket.machine_number ? ' #' + ticket.machine_number : ''}` : null,
     source: ticket.source,
+    aiDraft,
   });
   const sent = await sendEmail(env, { to: env.NOTIFY_EMAIL, subject: note.subject, text: note.text, html: note.html });
   if (!sent.ok) console.error('[helpdesk] inbound notification failed:', sent.error);
