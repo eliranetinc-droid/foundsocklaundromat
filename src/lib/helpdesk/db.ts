@@ -137,6 +137,26 @@ export async function deviceSplit(db: D1Database, days: number) {
   ).bind(sinceDay(days)).all<{ device: string; views: number }>();
   return results;
 }
+export async function referrers(db: D1Database, days: number, limit = 8) {
+  const { results } = await db.prepare(
+    `SELECT COALESCE(NULLIF(referrer_host,''),'—') AS host, COUNT(*) AS views FROM pageviews WHERE day >= ?
+     GROUP BY host ORDER BY views DESC LIMIT ?`
+  ).bind(sinceDay(days), limit).all<{ host: string; views: number }>();
+  return results;
+}
+export async function hoursOfDay(db: D1Database, days: number) {
+  const { results } = await db.prepare(
+    `SELECT hour, COUNT(*) AS views FROM pageviews WHERE day >= ? AND hour IS NOT NULL GROUP BY hour`
+  ).bind(sinceDay(days)).all<{ hour: number; views: number }>();
+  return results;
+}
+/** Total pageviews between two ET day strings, inclusive. */
+export async function viewsInRange(db: D1Database, startDay: string, endDay: string): Promise<number> {
+  const r = await db.prepare(
+    `SELECT COUNT(*) AS c FROM pageviews WHERE day >= ? AND day <= ?`
+  ).bind(startDay, endDay).first<{ c: number }>();
+  return r?.c ?? 0;
+}
 export const countOpenTickets = async (db: D1Database) =>
   (await db.prepare(`SELECT COUNT(*) AS c FROM tickets WHERE status = 'open'`).first<{ c: number }>())?.c ?? 0;
 export const countUnreadTickets = async (db: D1Database) =>
