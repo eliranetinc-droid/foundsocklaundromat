@@ -8,6 +8,7 @@ export interface HelpdeskEnv {
   CF_ACCESS_TEAM_DOMAIN: string;
   CF_ACCESS_AUD: string;
   ANTHROPIC_API_KEY?: string;
+  VAPID_PRIVATE_JWK?: string;
 }
 
 /** Cast the Cloudflare runtime env to our typed shape (same pattern the API routes already use). */
@@ -31,3 +32,7 @@ export const ADMIN_TIMEZONES: { value: string; label: string }[] = [
   { value: 'Pacific/Honolulu', label: 'Hawaii (Honolulu)' },
   { value: 'UTC', label: 'UTC' },
 ];
+
+/** Web Push (VAPID) — the public key is not secret; the private JWK is a Worker secret. */
+export const VAPID_PUBLIC_KEY = 'BCcUixynaIICEW4KWVWnXaffnhkSoLQHDw5QkqzS2o8plMbcb2AdeGuShFC6w0gaXIB2EP4nN4gboxFlIF4ibGQ';
+export const VAPID_SUBJECT = 'mailto:support@foundsocklaundromat.com';
