@@ -954,7 +954,9 @@ export function notificationEmail(n: {
       : '',
     `<a href="${url}" style="display:inline-block;background:#e2231a;color:#fff;font-weight:700;font-size:14px;text-decoration:none;padding:11px 24px;border-radius:999px">Open in admin →</a>`,
   ].join('');
-  return { subject, text, html: shell(`${emoji} ${n.kind === 'ticket' ? 'New ticket' : 'New reply'} — ${escapeHtml(n.subject)}`.replace(/<[^>]*>/g, ''), inner, n.publicId) };
+  // Pass the raw subject; shell() escapes the heading exactly once (pre-escaping
+  // here would double-encode special chars like & < > in the owner's email).
+  return { subject, text, html: shell(`${emoji} ${n.kind === 'ticket' ? 'New ticket' : 'New reply'} — ${n.subject}`, inner, n.publicId) };
 }
 
 export function replyEmail(r: { subject: string; publicId: string; body: string }) {
