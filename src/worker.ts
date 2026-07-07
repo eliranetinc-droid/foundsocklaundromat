@@ -4,6 +4,7 @@
 import server from '@astrojs/cloudflare/entrypoints/server';
 import type { ExecutionContext, ForwardableEmailMessage } from '@cloudflare/workers-types';
 import { handleInboundEmail } from './lib/helpdesk/inbound';
+import { sendWeeklyDigest } from './lib/helpdesk/digest';
 import type { HelpdeskEnv } from './lib/helpdesk/env';
 
 export default {
@@ -15,5 +16,8 @@ export default {
       console.error('[helpdesk] inbound email failed:', e);
       // Do not rethrow: rejecting would bounce the sender's email.
     }
+  },
+  async scheduled(_controller: unknown, env: unknown, _ctx: unknown) {
+    await sendWeeklyDigest(env as Parameters<typeof sendWeeklyDigest>[0]);
   },
 };

@@ -85,3 +85,42 @@ export function replyEmail(r: { subject: string; publicId: string; body: string 
   const inner = `<p style="margin:0;font-size:15px;color:#333;line-height:1.6">${br(r.body.trim())}</p>`;
   return { subject, text, html: shell('', inner, r.publicId) };
 }
+
+export function digestEmail(d: {
+  weekLabel: string;
+  visitors: number; visitorsPrev: number;
+  tickets: number; ticketsPrev: number;
+  aiHandled: number; aiSuggested: number;
+  medianCloseHours: number | null;
+  openNow: number;
+  machines: { machine: string; n: number }[];
+}) {
+  const pct = (cur: number, prev: number) => prev === 0 ? (cur === 0 ? '±0%' : '+100%') : `${cur >= prev ? '+' : ''}${Math.round(((cur - prev) / prev) * 100)}%`;
+  const subject = `🧺 Weekly report — ${d.weekLabel}`;
+  const lines = [
+    `Weekly report for ${d.weekLabel}`, '',
+    `Visitors: ${d.visitors} (${pct(d.visitors, d.visitorsPrev)} vs prior week)`,
+    `Tickets: ${d.tickets} (${pct(d.tickets, d.ticketsPrev)})`,
+    `AI handled: ${d.aiHandled} of ${d.aiSuggested} suggested`,
+    `Median time to close: ${d.medianCloseHours === null ? '—' : d.medianCloseHours + 'h'}`,
+    `Open right now: ${d.openNow}`,
+    d.machines.length ? `Machine watch: ${d.machines.map(m => `${m.machine} (${m.n})`).join(', ')}` : 'Machine watch: all quiet',
+    '', `Open in admin: ${SITE_URL}/admin/`,
+  ];
+  const row = (k: string, v: string) =>
+    `<tr><td style="padding:4px 0;color:#8a8378;font-size:13px">${escapeHtml(k)}</td><td style="padding:4px 0;text-align:right;font-size:14px;font-weight:700;color:#0F2A4A">${escapeHtml(v)}</td></tr>`;
+  const inner = [
+    `<table role="presentation" width="100%" style="margin-bottom:14px">`,
+    row('Visitors', `${d.visitors} (${pct(d.visitors, d.visitorsPrev)})`),
+    row('Tickets', `${d.tickets} (${pct(d.tickets, d.ticketsPrev)})`),
+    row('AI handled', `${d.aiHandled} of ${d.aiSuggested}`),
+    row('Median time to close', d.medianCloseHours === null ? '—' : `${d.medianCloseHours}h`),
+    row('Open right now', String(d.openNow)),
+    `</table>`,
+    d.machines.length
+      ? `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px;font-size:13px;color:#333"><b style="color:#b45309">Machine watch:</b> ${d.machines.map(m => `${escapeHtml(m.machine)} — ${m.n}`).join(' · ')}</div>`
+      : `<p style="font-size:13px;color:#333">Machine watch: all quiet this week.</p>`,
+    `<a href="${SITE_URL}/admin/" style="display:inline-block;margin-top:16px;background:#e2231a;color:#fff;font-weight:700;font-size:14px;text-decoration:none;padding:11px 24px;border-radius:999px">Open in admin →</a>`,
+  ].join('');
+  return { subject, text: lines.join('\n'), html: shell(`Your week — ${d.weekLabel}`, inner, 'weekly') };
+}

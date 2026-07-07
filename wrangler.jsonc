@@ -20,5 +20,6 @@
 	"vars": {
 		"CF_ACCESS_TEAM_DOMAIN": "foundsock.cloudflareaccess.com",
 		"CF_ACCESS_AUD": "99bf352d8b89acf064d02c50f225f4d6fdedc00bf452b364a236e589b11ad9ab"
-	}
+	},
+	"triggers": { "crons": ["0 12 * * 1"] }
 }
