@@ -1,6 +1,8 @@
 -- Found Sock helpdesk schema. Applied manually:
 --   local dev:  npx wrangler d1 execute foundsock-helpdesk --local --file=db/schema.sql
 --   production: paste into Cloudflare dashboard -> D1 -> foundsock-helpdesk -> Console
+-- MIGRATION 2026-07 (ops): existing databases need
+--   ALTER TABLE tickets ADD COLUMN closed_at TEXT;
 CREATE TABLE IF NOT EXISTS tickets (
   id TEXT PRIMARY KEY,
   public_id TEXT NOT NULL UNIQUE,
@@ -18,6 +20,7 @@ CREATE TABLE IF NOT EXISTS tickets (
   created_at TEXT NOT NULL,
   last_activity_at TEXT NOT NULL,
   unread INTEGER NOT NULL DEFAULT 1
+  , closed_at TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_tickets_status_activity ON tickets(status, last_activity_at DESC);
 CREATE INDEX IF NOT EXISTS idx_tickets_email ON tickets(customer_email);

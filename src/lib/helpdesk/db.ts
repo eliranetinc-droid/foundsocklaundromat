@@ -93,7 +93,8 @@ export async function listTickets(db: D1Database, status: 'open' | 'closed'): Pr
 }
 
 export const setStatus = (db: D1Database, id: string, status: 'open' | 'closed') =>
-  db.prepare(`UPDATE tickets SET status = ? WHERE id = ?`).bind(status, id).run();
+  db.prepare(`UPDATE tickets SET status = ?, closed_at = ? WHERE id = ?`)
+    .bind(status, status === 'closed' ? now() : null, id).run();
 export const markRead = (db: D1Database, id: string) =>
   db.prepare(`UPDATE tickets SET unread = 0 WHERE id = ?`).bind(id).run();
 export const touchActivity = (db: D1Database, id: string, unread: 0 | 1) =>
@@ -263,6 +264,60 @@ export async function ticketCountsByEmail(db: D1Database): Promise<Map<string, n
     `SELECT LOWER(customer_email) AS email, COUNT(*) AS n FROM tickets GROUP BY LOWER(customer_email)`
   ).all<{ email: string; n: number }>();
   return new Map(results.map(r => [r.email, r.n]));
+}
+
+// ---- ops intelligence ----
+/** Issue counts per machine ("Washer #7"), busiest first. */
+export async function ticketsByMachine(db: D1Database, days: number, limit = 8) {
+  const since = new Date(Date.now() - days * 86400000).toISOString();
+  const { results } = await db.prepare(
+    `SELECT machine_type || COALESCE(' #' || machine_number, '') AS machine, COUNT(*) AS n
+     FROM tickets WHERE machine_type IS NOT NULL AND created_at >= ?
+     GROUP BY machine ORDER BY n DESC, machine ASC LIMIT ?`
+  ).bind(since, limit).all<{ machine: string; n: number }>();
+  return results;
+}
+
+export interface AiStats { suggested: number; used: number; sent_as_is: number; dismissed: number; superseded: number; }
+/** Draft outcomes over the window (statuses not present count as 0). */
+export async function aiDraftStats(db: D1Database, days: number): Promise<AiStats> {
+  const since = new Date(Date.now() - days * 86400000).toISOString();
+  const { results } = await db.prepare(
+    `SELECT status, COUNT(*) AS n FROM ai_drafts WHERE created_at >= ? GROUP BY status`
+  ).bind(since).all<{ status: string; n: number }>();
+  const s: AiStats = { suggested: 0, used: 0, sent_as_is: 0, dismissed: 0, superseded: 0 };
+  for (const r of results) if (r.status in s) (s as any)[r.status] = r.n;
+  return s;
+}
+
+export interface ResolutionStats { medianCloseHours: number | null; closedCount: number; pctWithin24h: number | null; oldestOpenCreatedAt: string | null; }
+export async function resolutionStats(db: D1Database, days: number): Promise<ResolutionStats> {
+  const since = new Date(Date.now() - days * 86400000).toISOString();
+  const { results } = await db.prepare(
+    `SELECT created_at, closed_at FROM tickets WHERE closed_at IS NOT NULL AND created_at >= ?`
+  ).bind(since).all<{ created_at: string; closed_at: string }>();
+  const oldest = await db.prepare(
+    `SELECT created_at FROM tickets WHERE status = 'open' ORDER BY created_at ASC LIMIT 1`
+  ).first<{ created_at: string }>();
+  if (results.length === 0) return { medianCloseHours: null, closedCount: 0, pctWithin24h: null, oldestOpenCreatedAt: oldest?.created_at ?? null };
+  const hours = results.map(r => (Date.parse(r.closed_at) - Date.parse(r.created_at)) / 3_600_000).sort((a, b) => a - b);
+  const mid = Math.floor(hours.length / 2);
+  const med = hours.length % 2 ? hours[mid] : (hours[mid - 1] + hours[mid]) / 2;
+  const within = hours.filter(h => h <= 24).length;
+  return {
+    medianCloseHours: Math.round(med * 10) / 10,
+    closedCount: hours.length,
+    pctWithin24h: Math.round((within / hours.length) * 100),
+    oldestOpenCreatedAt: oldest?.created_at ?? null,
+  };
+}
+
+export async function sourceSplit(db: D1Database, days: number) {
+  const since = new Date(Date.now() - days * 86400000).toISOString();
+  const { results } = await db.prepare(
+    `SELECT source, COUNT(*) AS n FROM tickets WHERE created_at >= ? GROUP BY source ORDER BY n DESC`
+  ).bind(since).all<{ source: string; n: number }>();
+  return results;
 }
 
 export async function insertDraft(db: D1Database, d: { ticketId: string; triggerMessageId: number | null; body: string; model: string }): Promise<number> {
