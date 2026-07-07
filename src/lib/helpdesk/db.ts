@@ -110,7 +110,10 @@ export const insertPageview = (db: D1Database, pv: { path: string; referrerHost:
   ).bind(d.toISOString(), day, hour, pv.path, pv.referrerHost, pv.country, pv.device).run();
 };
 
-const sinceDay = (days: number) => etDay(new Date(Date.now() - days * 86400000));
+// First ET day of a "last N days" window: N-1 days back so the inclusive
+// `day >= sinceDay(N)` filter spans exactly N days (today + N-1 prior), aligning
+// with the dashboard/analytics `days` arrays (which start at dayAgo(N-1)).
+const sinceDay = (days: number) => etDay(new Date(Date.now() - (days - 1) * 86400000));
 
 export async function viewsByDay(db: D1Database, days: number) {
   const { results } = await db.prepare(
