@@ -247,6 +247,24 @@ export async function getTimezone(db: D1Database): Promise<string> {
   return (await getSetting(db, 'timezone')) ?? 'America/New_York';
 }
 
+// ---- customer history ----
+/** Other tickets from the same customer email (case-insensitive), newest first. */
+export async function ticketsByEmail(db: D1Database, email: string, excludeId = '', limit = 10) {
+  const { results } = await db.prepare(
+    `SELECT id, public_id, subject, status, created_at FROM tickets
+     WHERE customer_email = ? COLLATE NOCASE AND id != ?
+     ORDER BY created_at DESC LIMIT ?`
+  ).bind(email, excludeId, limit).all<{ id: string; public_id: string; subject: string; status: 'open' | 'closed'; created_at: string }>();
+  return results;
+}
+/** Total tickets per customer email (lowercased), for repeat-customer markers. */
+export async function ticketCountsByEmail(db: D1Database): Promise<Map<string, number>> {
+  const { results } = await db.prepare(
+    `SELECT LOWER(customer_email) AS email, COUNT(*) AS n FROM tickets GROUP BY LOWER(customer_email)`
+  ).all<{ email: string; n: number }>();
+  return new Map(results.map(r => [r.email, r.n]));
+}
+
 export async function insertDraft(db: D1Database, d: { ticketId: string; triggerMessageId: number | null; body: string; model: string }): Promise<number> {
   const r = await db.prepare(
     `INSERT INTO ai_drafts (ticket_id, trigger_message_id, body, status, model, created_at) VALUES (?, ?, ?, 'suggested', ?, ?) RETURNING id`

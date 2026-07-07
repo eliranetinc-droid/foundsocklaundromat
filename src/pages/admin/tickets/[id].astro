@@ -3,7 +3,7 @@ export const prerender = false;
 
 import AdminLayout from '../../../components/admin/AdminLayout.astro';
 import { getHelpdeskEnv } from '../../../lib/helpdesk/env';
-import { getTicket, getMessages, markRead, getTimezone } from '../../../lib/helpdesk/db';
+import { getTicket, getMessages, markRead, getTimezone, ticketsByEmail } from '../../../lib/helpdesk/db';
 import { latestSuggestedDraft } from '../../../lib/helpdesk/db';
 
 const id = Astro.params.id ?? '';
@@ -15,6 +15,7 @@ const messages = await getMessages(env.DB, ticket.id);
 if (ticket.unread === 1) await markRead(env.DB, ticket.id);
 const draft = await latestSuggestedDraft(env.DB, ticket.id);
 const tz = await getTimezone(env.DB);
+const history = await ticketsByEmail(env.DB, ticket.customer_email, ticket.id);
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: tz, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 const details: [string, string | null][] = [
@@ -65,6 +66,26 @@ const atts = (json: string | null): string[] => { try { return JSON.parse(json ?
       </div>
     )}
   </div>
+
+  {history.length > 0 && (
+    <div class="bg-white rounded-2xl border border-line mb-6">
+      <div class="px-5 py-3 border-b border-line flex items-center gap-2">
+        <h2 class="text-sm font-bold">Previous tickets from this customer</h2>
+        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">{history.length + 1} total</span>
+      </div>
+      <div class="divide-y divide-line">
+        {history.map(h => (
+          <a href={`/admin/tickets/${h.id}/`} class="flex items-center gap-3 px-5 py-2.5 hover:bg-cream/60 text-sm">
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-blue/10 text-brand-blue shrink-0">{h.public_id}</span>
+            <span class="truncate flex-1 min-w-0">{h.subject}</span>
+            <span class:list={['text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0',
+              h.status === 'open' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500']}>{h.status}</span>
+            <span class="text-xs opacity-50 shrink-0">{fmt(h.created_at)}</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  )}
 
   <div class="space-y-3 mb-6">
     {messages.map(m => (

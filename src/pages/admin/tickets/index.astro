@@ -3,11 +3,12 @@ export const prerender = false;
 
 import AdminLayout from '../../../components/admin/AdminLayout.astro';
 import { getHelpdeskEnv } from '../../../lib/helpdesk/env';
-import { listTickets, getTimezone } from '../../../lib/helpdesk/db';
+import { listTickets, getTimezone, ticketCountsByEmail } from '../../../lib/helpdesk/db';
 
 const status = Astro.url.searchParams.get('status') === 'closed' ? 'closed' : 'open';
 const env = await getHelpdeskEnv();
-const [tickets, tz] = await Promise.all([listTickets(env.DB, status), getTimezone(env.DB)]);
+const [tickets, tz, emailCounts] = await Promise.all([listTickets(env.DB, status), getTimezone(env.DB), ticketCountsByEmail(env.DB)]);
+const repeatCount = (email: string) => emailCounts.get(email.toLowerCase()) ?? 0;
 const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: tz, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 const sourceBadge: Record<string, string> = { 'issue-form': 'Issue', 'contact-form': 'Contact', email: 'Email' };
 ---
@@ -28,6 +29,10 @@ const sourceBadge: Record<string, string> = { 'issue-form': 'Issue', 'contact-fo
           <div class="flex items-center gap-2 min-w-0">
             {t.unread === 1 && <span class="w-2 h-2 rounded-full bg-brand-red shrink-0" title="Unread"></span>}
             <span class:list={['truncate', t.unread === 1 ? 'font-bold' : 'font-semibold']}>{t.customer_name}</span>
+            {repeatCount(t.customer_email) >= 2 && (
+              <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 shrink-0"
+                title={`${repeatCount(t.customer_email)} tickets from this customer`}>×{repeatCount(t.customer_email)}</span>
+            )}
             <span class="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-brand-blue/10 text-brand-blue shrink-0">{sourceBadge[t.source] ?? t.source}</span>
           </div>
           <span class="text-xs opacity-60 shrink-0">{fmt(t.last_activity_at)}</span>
