@@ -27,52 +27,69 @@ const isActive = (href: string) => path === href || (href !== '/admin/' && path.
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title} · Found Sock Admin</title>
   </head>
-  <body class="bg-cream text-brand-blue-darker antialiased">
-    <input type="checkbox" id="navToggle" class="peer hidden" />
-    <div class="lg:grid lg:grid-cols-[16rem_1fr] min-h-screen">
-      <!-- Sidebar -->
-      <aside class="fixed inset-y-0 left-0 z-30 w-64 bg-brand-blue-darker text-white flex flex-col
-                    -translate-x-full peer-checked:translate-x-0 transition-transform
-                    lg:static lg:translate-x-0">
-        <div class="px-5 py-4 border-b border-white/10">
-          <a href="/admin/" class="font-bold tracking-tight text-lg">Found Sock <span class="opacity-60 font-normal">Admin</span></a>
-        </div>
-        <nav class="flex-1 px-3 py-4 space-y-1 text-sm">
-          {nav.map(item => (
-            <a href={item.href}
-               class:list={['flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
-                 isActive(item.href) ? 'bg-white/10 font-semibold text-white' : 'text-white/60 hover:text-white hover:bg-white/5']}>
-              <span class="w-4 text-center opacity-80">{item.icon}</span>{item.label}
-            </a>
-          ))}
-        </nav>
-        <div class="px-3 py-4 border-t border-white/10">
-          <a href="/" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/50 hover:text-white hover:bg-white/5 text-sm">
-            <span class="w-4 text-center">↗</span>View site
+  <body class="bg-cream text-brand-blue-darker antialiased lg:flex min-h-screen">
+    <!-- On lg the body is a flex row (sidebar column + content). On mobile the
+         sidebar is a fixed drawer toggled by JS (setting inline transform, which
+         beats Tailwind's layered rules; a pure-CSS :checked sibling override was
+         unreliable against Tailwind v4's cascade layers). -->
+    <aside id="adminSidebar" class="fixed inset-y-0 left-0 z-30 w-64 bg-brand-blue-darker text-white flex flex-col
+                  transition-transform lg:static lg:shrink-0">
+      <div class="px-5 py-4 border-b border-white/10">
+        <a href="/admin/" class="font-bold tracking-tight text-lg">Found Sock <span class="opacity-60 font-normal">Admin</span></a>
+      </div>
+      <nav class="flex-1 px-3 py-4 space-y-1 text-sm">
+        {nav.map(item => (
+          <a href={item.href}
+             class:list={['flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+               isActive(item.href) ? 'bg-white/10 font-semibold text-white' : 'text-white/60 hover:text-white hover:bg-white/5']}>
+            <span class="w-4 text-center opacity-80">{item.icon}</span>{item.label}
+          </a>
+        ))}
+      </nav>
+      <div class="px-3 py-4 border-t border-white/10">
+        <a href="/" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/50 hover:text-white hover:bg-white/5 text-sm">
+          <span class="w-4 text-center">↗</span>View site
+        </a>
+      </div>
+    </aside>
+    <!-- Dim overlay behind mobile drawer (shown/hidden by JS) -->
+    <div id="navOverlay" class="fixed inset-0 z-20 bg-black/30 hidden lg:hidden"></div>
+
+    <div class="flex-1 flex flex-col min-h-screen min-w-0">
+      <!-- Topbar -->
+      <header class="sticky top-0 z-10 bg-white border-b border-line">
+        <div class="px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3 min-w-0">
+            <button type="button" id="navOpen" class="lg:hidden cursor-pointer text-xl leading-none px-1" aria-label="Open menu">☰</button>
+            <h1 class="text-base font-bold tracking-tight truncate">{title}</h1>
+          </div>
+          <a href="/admin/tickets/" class:list={['text-xs font-bold px-3 py-1.5 rounded-full',
+               openCount > 0 ? 'bg-brand-red text-white' : 'bg-brand-blue/10 text-brand-blue']}>
+            {openCount} open
           </a>
         </div>
-      </aside>
-      <!-- Dim overlay behind mobile drawer -->
-      <label for="navToggle" class="fixed inset-0 z-20 bg-black/30 hidden peer-checked:block lg:hidden"></label>
-
-      <div class="flex flex-col min-h-screen">
-        <!-- Topbar -->
-        <header class="sticky top-0 z-10 bg-white border-b border-line">
-          <div class="px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3 min-w-0">
-              <label for="navToggle" class="lg:hidden cursor-pointer text-xl leading-none px-1" aria-label="Menu">☰</label>
-              <h1 class="text-base font-bold tracking-tight truncate">{title}</h1>
-            </div>
-            <a href="/admin/tickets/" class:list={['text-xs font-bold px-3 py-1.5 rounded-full',
-                 openCount > 0 ? 'bg-brand-red text-white' : 'bg-brand-blue/10 text-brand-blue']}>
-              {openCount} open
-            </a>
-          </div>
-        </header>
-        <main class="flex-1 p-4 sm:p-6 max-w-6xl w-full">
-          <slot />
-        </main>
-      </div>
+      </header>
+      <main class="flex-1 p-4 sm:p-6 max-w-6xl w-full">
+        <slot />
+      </main>
     </div>
+
+    <style is:global>
+      /* Mobile: drawer closed by default; JS sets inline transform to open it.
+         Desktop: sidebar is a static flex column, never transformed. */
+      #adminSidebar { transform: translateX(-100%); }
+      @media (min-width: 1024px) { #adminSidebar { transform: none !important; } }
+    </style>
+    <script is:inline>
+      (function () {
+        var aside = document.getElementById('adminSidebar');
+        var overlay = document.getElementById('navOverlay');
+        var openBtn = document.getElementById('navOpen');
+        function open() { aside.style.transform = 'translateX(0)'; overlay.classList.remove('hidden'); }
+        function close() { aside.style.transform = ''; overlay.classList.add('hidden'); }
+        openBtn && openBtn.addEventListener('click', open);
+        overlay && overlay.addEventListener('click', close);
+      })();
+    </script>
   </body>
 </html>
