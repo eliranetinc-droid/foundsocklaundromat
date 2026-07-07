@@ -1,6 +1,6 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import type { TicketSource } from './templates';
-import { etDay, etDayHour } from './pv';
+import { etDay, etDayHour, channelOf } from './pv';
 
 export interface TicketRow {
   id: string; public_id: string; reply_token: string;
@@ -365,3 +365,38 @@ export const removePushSubscription = (db: D1Database, endpoint: string) =>
   db.prepare(`DELETE FROM push_subscriptions WHERE endpoint = ?`).bind(endpoint).run();
 export const disablePushSubscription = (db: D1Database, endpoint: string) =>
   db.prepare(`UPDATE push_subscriptions SET disabled = 1 WHERE endpoint = ?`).bind(endpoint).run();
+
+// ---- traffic intelligence (cookie-free) ----
+export async function viewsByChannel(db: D1Database, days: number) {
+  const { results } = await db.prepare(
+    `SELECT COALESCE(referrer_host,'') AS host, COUNT(*) AS n FROM pageviews WHERE day >= ? GROUP BY referrer_host`
+  ).bind(sinceDay(days)).all<{ host: string; n: number }>();
+  const agg = new Map<string, number>();
+  for (const r of results) {
+    const c = channelOf(r.host);
+    agg.set(c, (agg.get(c) ?? 0) + r.n);
+  }
+  const order = ['Direct', 'Search', 'Social', 'Referral'];
+  return order.filter(c => agg.has(c)).map(c => ({ channel: c, views: agg.get(c)! }));
+}
+
+/** Arrivals from external sites, by page (cookie-free cousin of "landing pages"). */
+export async function entryPages(db: D1Database, days: number, limit = 8) {
+  const { results } = await db.prepare(
+    `SELECT path, COUNT(*) AS n FROM pageviews WHERE day >= ? AND referrer_host != '' AND referrer_host IS NOT NULL
+     GROUP BY path ORDER BY n DESC LIMIT ?`
+  ).bind(sinceDay(days), limit).all<{ path: string; n: number }>();
+  return results;
+}
+
+/** Report-issue funnel: page views vs tickets created via the form. */
+export async function issueFunnel(db: D1Database, days: number): Promise<{ views: number; tickets: number; rate: number | null }> {
+  const views = (await db.prepare(
+    `SELECT COUNT(*) AS c FROM pageviews WHERE day >= ? AND path = '/report-issue/'`
+  ).bind(sinceDay(days)).first<{ c: number }>())?.c ?? 0;
+  const since = new Date(Date.now() - days * 86400000).toISOString();
+  const tickets = (await db.prepare(
+    `SELECT COUNT(*) AS c FROM tickets WHERE created_at >= ? AND source = 'issue-form'`
+  ).bind(since).first<{ c: number }>())?.c ?? 0;
+  return { views, tickets, rate: views > 0 ? Math.round((tickets / views) * 100) : null };
+}

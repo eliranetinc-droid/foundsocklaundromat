@@ -1,5 +1,5 @@
 import { test, expect, describe } from 'vitest';
-import { isBotUA, classifyDevice, referrerHost, isValidPath, etDay, etDayHour } from './pv';
+import { isBotUA, classifyDevice, referrerHost, isValidPath, etDay, etDayHour, channelOf } from './pv';
 
 describe('isBotUA', () => {
   test('flags bots and empty UA', () => {
@@ -56,5 +56,20 @@ describe('etDay / etDayHour', () => {
     const r = etDayHour(new Date('2026-07-01T16:00:00.000Z')); // 12:00 EDT
     expect(r.day).toBe('2026-07-01');
     expect(r.hour).toBe(12);
+  });
+});
+
+describe('channelOf', () => {
+  test('classifies referrer hosts', () => {
+    expect(channelOf('')).toBe('Direct');
+    expect(channelOf('—')).toBe('Direct');
+    expect(channelOf('www.google.com')).toBe('Search');
+    expect(channelOf('bing.com')).toBe('Search');
+    expect(channelOf('duckduckgo.com')).toBe('Search');
+    expect(channelOf('m.facebook.com')).toBe('Social');
+    expect(channelOf('instagram.com')).toBe('Social');
+    expect(channelOf('t.co')).toBe('Social');
+    expect(channelOf('www.reddit.com')).toBe('Social');
+    expect(channelOf('somelocalblog.com')).toBe('Referral');
   });
 });

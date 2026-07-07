@@ -41,3 +41,15 @@ export function etDayHour(d: Date): { day: string; hour: number } {
   }).format(d)) % 24; // '24' → 0 guard
   return { day: etDay(d), hour };
 }
+
+const SEARCH_HOSTS = /(^|\.)(google|bing|duckduckgo|yahoo|ecosia|brave|startpage)\.[a-z.]+$/;
+const SOCIAL_HOSTS = /(^|\.)(facebook|instagram|twitter|x|t|linkedin|reddit|tiktok|pinterest|youtube|threads|nextdoor)\.(com|co|org)$/;
+
+/** Cookie-free channel classification from a referrer host. */
+export function channelOf(referrerHost: string | null): 'Direct' | 'Search' | 'Social' | 'Referral' {
+  const h = (referrerHost ?? '').toLowerCase();
+  if (!h || h === '—') return 'Direct';
+  if (SEARCH_HOSTS.test(h)) return 'Search';
+  if (SOCIAL_HOSTS.test(h)) return 'Social';
+  return 'Referral';
+}
