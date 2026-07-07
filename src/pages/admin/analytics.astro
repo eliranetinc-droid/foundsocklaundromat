@@ -4,17 +4,18 @@ export const prerender = false;
 import AdminLayout from '../../components/admin/AdminLayout.astro';
 import AdminIcon from '../../components/admin/AdminIcon.astro';
 import { getHelpdeskEnv } from '../../lib/helpdesk/env';
-import { viewsByDay, topPages, topCountries, deviceSplit, referrers, hoursOfDay, viewsInRange, recentPageviews, countRecentViewers, getTimezone } from '../../lib/helpdesk/db';
+import { viewsByDay, topPages, topCountries, deviceSplit, referrers, hoursOfDay, viewsInRange, recentPageviews, countRecentViewers, getTimezone, viewsByChannel, entryPages, issueFunnel } from '../../lib/helpdesk/db';
 import { etDay } from '../../lib/helpdesk/pv';
 
 const periodParam = Astro.url.searchParams.get('period');
 const period = periodParam === '7' || periodParam === '90' ? Number(periodParam) : 30;
 
 const env = await getHelpdeskEnv();
-const [views, pages, countries, devices, refs, hours, recent, viewingNow, tz] = await Promise.all([
-  viewsByDay(env.DB, period), topPages(env.DB, period), topCountries(env.DB, period),
+const [views2x, pages, countries, devices, refs, hours, recent, viewingNow, tz, channels, entries, funnel] = await Promise.all([
+  viewsByDay(env.DB, 2 * period), topPages(env.DB, period), topCountries(env.DB, period),
   deviceSplit(env.DB, period), referrers(env.DB, period), hoursOfDay(env.DB, period),
   recentPageviews(env.DB, 25), countRecentViewers(env.DB, 5), getTimezone(env.DB),
+  viewsByChannel(env.DB, period), entryPages(env.DB, period), issueFunnel(env.DB, period),
 ]);
 const visitTime = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: tz, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
@@ -23,27 +24,60 @@ const today = dayAgo(0);
 const curStart = dayAgo(period - 1);
 const prevStart = dayAgo(2 * period - 1);
 const prevEnd = dayAgo(period);
+// views2x spans 2*period days (prevStart..today); split into the current window
+// (curStart..today) and the previous window (prevStart..prevEnd) — the two are
+// adjacent and non-overlapping, each exactly `period` days long.
+const views = views2x.filter(v => v.day >= curStart);
+const prevViews = views2x.filter(v => v.day <= prevEnd);
 const total = views.reduce((s, v) => s + v.views, 0);
 const prevTotal = await viewsInRange(env.DB, prevStart, prevEnd);
 const dailyAvg = Math.round(total / period);
 const deltaPct = prevTotal === 0 ? (total === 0 ? 0 : 100) : Math.round(((total - prevTotal) / prevTotal) * 100);
 const busiest = views.reduce((m, v) => (v.views > (m?.views ?? -1) ? v : m), null as null | { day: string; views: number });
 
-// Gap-filled daily series for the big chart
+// Gap-filled daily series for the big chart (current period)
 const nDays = period;
 const days: string[] = Array.from({ length: nDays }, (_, i) => dayAgo(nDays - 1 - i));
 const vmap = new Map(views.map(v => [v.day, v.views]));
 const series = days.map(d => vmap.get(d) ?? 0);
-const maxDay = Math.max(1, ...series);
+
+// Gap-filled daily series for the ghost line (previous period, same length,
+// aligned day-for-day so index i in both series is "i days into the window").
+const prevDays: string[] = Array.from({ length: nDays }, (_, i) => {
+  const daysAgo = 2 * nDays - 1 - i;
+  return dayAgo(daysAgo);
+});
+const prevVmap = new Map(prevViews.map(v => [v.day, v.views]));
+const prevSeries = prevDays.map(d => prevVmap.get(d) ?? 0);
+
+const maxDay = Math.max(1, ...series, ...prevSeries);
 const W = 720, H = 180;
-const pts = series.map((v, i) => [nDays <= 1 ? 0 : (i / (nDays - 1)) * W, H - (v / maxDay) * (H - 10) - 5] as const);
+const toPts = (s: number[]) => s.map((v, i) => [nDays <= 1 ? 0 : (i / (nDays - 1)) * W, H - (v / maxDay) * (H - 10) - 5] as const);
+const pts = toPts(series);
+const prevPts = toPts(prevSeries);
 const linePath = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+const prevLinePath = prevPts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
 const areaPath = `M0,${H} ${pts.map(p => `L${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')} L${W},${H} Z`;
 
 const maxPage = Math.max(1, ...pages.map(p => p.views));
 const devTotal = Math.max(1, devices.reduce((s, d) => s + d.views, 0));
 const hourArr = Array.from({ length: 24 }, (_, h) => hours.find(x => x.hour === h)?.views ?? 0);
 const maxHour = Math.max(1, ...hourArr);
+
+// Busiest weekday: aggregate the gap-filled daily series (current period) by
+// UTC weekday-of the ET calendar day (noon UTC avoids any DST edge crossing).
+const weekdayArr = Array.from({ length: 7 }, () => 0);
+days.forEach((d, i) => {
+  const wd = new Date(d + 'T12:00:00Z').getUTCDay();
+  weekdayArr[wd] += series[i];
+});
+const maxWeekday = Math.max(1, ...weekdayArr);
+const weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const maxChannel = Math.max(1, ...channels.map(c => c.views));
+const channelTotal = Math.max(1, channels.reduce((s, c) => s + c.views, 0));
+const maxEntry = Math.max(1, ...entries.map(e => e.n));
+
 const periods = [7, 30, 90];
 const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`);
 ---
@@ -97,10 +131,15 @@ const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? 
     {total === 0 ? <p class="text-sm opacity-50">No data yet.</p> : (
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" class="w-full" style={`height:${H}px`} aria-hidden="true">
         <path d={areaPath} fill="#2f6f9f" fill-opacity="0.1" />
+        <path d={prevLinePath} fill="none" stroke="#9ca3af" stroke-dasharray="4 3" stroke-width="1.5" vector-effect="non-scaling-stroke" />
         <path d={linePath} fill="none" stroke="#2f6f9f" stroke-width="2" vector-effect="non-scaling-stroke" />
       </svg>
     )}
     <div class="flex justify-between text-[10px] opacity-45 mt-1"><span>{days[0]?.slice(5)}</span><span>{today.slice(5)}</span></div>
+    <div class="flex items-center gap-4 mt-3 text-[11px] opacity-60">
+      <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-0.5 bg-brand-blue"></span>This period</span>
+      <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-0.5" style="background-image:repeating-linear-gradient(to right,#9ca3af 0 4px,transparent 4px 7px)"></span>Previous period</span>
+    </div>
   </section>
 
   <div class="grid md:grid-cols-2 gap-4 mb-6">
@@ -127,6 +166,34 @@ const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? 
 
   <div class="grid md:grid-cols-2 gap-4 mb-6">
     <section class="bg-white rounded-2xl border border-line shadow-sm p-5">
+      <h2 class="text-sm font-bold mb-3">Channels</h2>
+      {channels.length === 0 && <p class="text-sm opacity-50">No data yet.</p>}
+      <div class="space-y-2.5">
+        {channels.map(c => (
+          <div>
+            <div class="flex justify-between text-sm mb-0.5"><span class="truncate">{c.channel}</span><span class="opacity-55 ml-2 shrink-0">{c.views} ({Math.round((c.views / channelTotal) * 100)}%)</span></div>
+            <div class="h-1.5 bg-line rounded-full overflow-hidden"><div class="h-full bg-brand-blue rounded-full" style={`width:${Math.round((c.views / maxChannel) * 100)}%`}></div></div>
+          </div>
+        ))}
+      </div>
+    </section>
+    <section class="bg-white rounded-2xl border border-line shadow-sm p-5">
+      <h2 class="text-sm font-bold mb-3">Entry pages</h2>
+      <p class="text-xs opacity-50 -mt-2 mb-3">arrivals from external sites — cookie-free, so internal navigation isn't counted</p>
+      {entries.length === 0 && <p class="text-sm opacity-50">No data yet.</p>}
+      <div class="space-y-2.5">
+        {entries.map(e => (
+          <div>
+            <div class="flex justify-between text-sm mb-0.5"><span class="truncate">{e.path}</span><span class="opacity-55 ml-2 shrink-0">{e.n}</span></div>
+            <div class="h-1.5 bg-line rounded-full overflow-hidden"><div class="h-full bg-brand-blue rounded-full" style={`width:${Math.round((e.n / maxEntry) * 100)}%`}></div></div>
+          </div>
+        ))}
+      </div>
+    </section>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-4 mb-6">
+    <section class="bg-white rounded-2xl border border-line shadow-sm p-5">
       <h2 class="text-sm font-bold mb-3">Countries</h2>
       {countries.length === 0 && <p class="text-sm opacity-50">No data yet.</p>}
       <div class="space-y-1.5 text-sm">
@@ -142,6 +209,15 @@ const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? 
     </section>
   </div>
 
+  <section class="bg-white rounded-2xl border border-line shadow-sm p-4 mb-6">
+    <p class="text-sm">
+      <span class="font-bold">{funnel.views}</span> report-issue views →
+      <span class="font-bold">{funnel.tickets}</span> tickets
+      (<span class="font-bold">{funnel.rate ?? '—'}%</span>)
+    </p>
+    <p class="text-xs opacity-50 mt-0.5">views of /report-issue/ vs tickets submitted</p>
+  </section>
+
   <section class="bg-white rounded-2xl border border-line shadow-sm p-5 mb-6">
     <h2 class="text-sm font-bold mb-3">Busiest hours <span class="font-normal opacity-45">(Eastern)</span></h2>
     <div class="flex items-end gap-[3px] h-24">
@@ -150,6 +226,16 @@ const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? 
       ))}
     </div>
     <div class="flex justify-between text-[10px] opacity-45 mt-1"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>11p</span></div>
+
+    <h2 class="text-sm font-bold mb-3 mt-5">Busiest weekday</h2>
+    <div class="flex items-end gap-[3px] h-16">
+      {weekdayArr.map((v, wd) => (
+        <div class="flex-1 bg-brand-blue/70 hover:bg-brand-red rounded-t" style={`height:${Math.max(2, Math.round((v / maxWeekday) * 100))}%`} title={`${weekdayLabels[wd]}: ${v}`}></div>
+      ))}
+    </div>
+    <div class="flex justify-between text-[10px] opacity-45 mt-1">
+      {weekdayLabels.map(l => <span>{l}</span>)}
+    </div>
   </section>
 
   <!-- Recent visits (live) -->
