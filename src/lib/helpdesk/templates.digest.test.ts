@@ -19,7 +19,7 @@ describe('digestEmail', () => {
     expect(e.html).toContain('120');
     expect(e.html).toContain('Washer #7');
     expect(e.html).toContain('+20%');   // visitors up
-    expect(e.html).toContain('Open in admin').valueOf;
+    expect(e.html).toContain('Open in admin');
     expect(e.html).toContain('/admin/');
   });
   test('escapes machine names', () => {
