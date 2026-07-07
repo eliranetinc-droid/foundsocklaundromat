@@ -85,8 +85,11 @@ export async function handleInboundEmail(message: ForwardableEmailMessage, env: 
 
   const note = notificationEmail({
     publicId: ticket.public_id, ticketId: ticket.id, kind: 'message',
-    subject: ticket.subject, customerName: ticket.customer_name, snippet: body || '[image attachment]',
+    subject: ticket.subject, customerName: ticket.customer_name, customerEmail: ticket.customer_email,
+    snippet: body || '[image attachment]',
+    machine: ticket.machine_type ? `${ticket.machine_type}${ticket.machine_number ? ' #' + ticket.machine_number : ''}` : null,
+    source: ticket.source,
   });
-  const sent = await sendEmail(env, { to: env.NOTIFY_EMAIL, subject: note.subject, text: note.text });
+  const sent = await sendEmail(env, { to: env.NOTIFY_EMAIL, subject: note.subject, text: note.text, html: note.html });
   if (!sent.ok) console.error('[helpdesk] inbound notification failed:', sent.error);
 }

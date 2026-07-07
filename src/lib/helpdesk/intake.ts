@@ -42,11 +42,16 @@ export async function intakeTicket(env: HelpdeskEnv, input: IntakeInput): Promis
 
   if (input.sendConfirmation !== false) {
     const conf = confirmationEmail({ publicId, source: input.source, customerName: input.customerName });
-    const sent = await sendEmail(env, { to: input.customerEmail, subject: conf.subject, text: conf.text, replyToken });
+    const sent = await sendEmail(env, { to: input.customerEmail, subject: conf.subject, text: conf.text, html: conf.html, replyToken });
     if (!sent.ok) console.error('[helpdesk] confirmation send failed:', sent.error);
   }
-  const note = notificationEmail({ publicId, ticketId: id, kind: 'ticket', subject: input.subject, customerName: input.customerName, snippet: input.body });
-  const notified = await sendEmail(env, { to: env.NOTIFY_EMAIL, subject: note.subject, text: note.text });
+  const note = notificationEmail({
+    publicId, ticketId: id, kind: 'ticket', subject: input.subject,
+    customerName: input.customerName, customerEmail: input.customerEmail, snippet: input.body,
+    machine: input.fields?.machineType ? `${input.fields.machineType}${input.fields.machineNumber ? ' #' + input.fields.machineNumber : ''}` : null,
+    source: input.source,
+  });
+  const notified = await sendEmail(env, { to: env.NOTIFY_EMAIL, subject: note.subject, text: note.text, html: note.html });
   if (!notified.ok) console.error('[helpdesk] owner notification failed:', notified.error);
 
   return { id, publicId };
