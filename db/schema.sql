@@ -48,3 +48,19 @@ CREATE TABLE IF NOT EXISTS pageviews (
   device TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_pageviews_day ON pageviews(day);
+
+CREATE TABLE IF NOT EXISTS ai_drafts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ticket_id TEXT NOT NULL REFERENCES tickets(id),
+  trigger_message_id INTEGER,
+  body TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'suggested',
+  model TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_ai_drafts_ticket ON ai_drafts(ticket_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);

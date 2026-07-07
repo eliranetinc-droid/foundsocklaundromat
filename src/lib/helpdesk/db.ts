@@ -233,3 +233,38 @@ export async function needsAttention(db: D1Database, staleHours = 48, limit = 20
   ).bind(cutoff, limit).all<TicketRow>();
   return results;
 }
+
+// ---- AI drafts + settings ----
+export async function getSetting(db: D1Database, key: string): Promise<string | null> {
+  const r = await db.prepare(`SELECT value FROM settings WHERE key = ?`).bind(key).first<{ value: string }>();
+  return r?.value ?? null;
+}
+export const setSetting = (db: D1Database, key: string, value: string) =>
+  db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`).bind(key, value).run();
+
+export async function insertDraft(db: D1Database, d: { ticketId: string; triggerMessageId: number | null; body: string; model: string }): Promise<number> {
+  const r = await db.prepare(
+    `INSERT INTO ai_drafts (ticket_id, trigger_message_id, body, status, model, created_at) VALUES (?, ?, ?, 'suggested', ?, ?) RETURNING id`
+  ).bind(d.ticketId, d.triggerMessageId, d.body, d.model, now()).first<{ id: number }>();
+  return r?.id ?? 0;
+}
+export const supersedeDrafts = (db: D1Database, ticketId: string) =>
+  db.prepare(`UPDATE ai_drafts SET status = 'superseded' WHERE ticket_id = ? AND status = 'suggested'`).bind(ticketId).run();
+export const setDraftStatus = (db: D1Database, id: number, status: string) =>
+  db.prepare(`UPDATE ai_drafts SET status = ? WHERE id = ?`).bind(status, id).run();
+export const latestSuggestedDraft = (db: D1Database, ticketId: string) =>
+  db.prepare(`SELECT id, body FROM ai_drafts WHERE ticket_id = ? AND status = 'suggested' ORDER BY created_at DESC, id DESC LIMIT 1`)
+    .bind(ticketId).first<{ id: number; body: string }>();
+
+/** Adjacent inbound→outbound reply pairs across recent tickets, newest first. */
+export async function recentOutboundPairs(db: D1Database, limit = 60): Promise<{ inbound: string; outbound: string }[]> {
+  const { results } = await db.prepare(
+    `SELECT
+       (SELECT body FROM messages p WHERE p.ticket_id = o.ticket_id AND p.direction='inbound' AND p.created_at <= o.created_at
+        ORDER BY p.created_at DESC, p.id DESC LIMIT 1) AS inbound,
+       o.body AS outbound
+     FROM messages o WHERE o.direction='outbound'
+     ORDER BY o.created_at DESC, o.id DESC LIMIT ?`
+  ).bind(limit).all<{ inbound: string | null; outbound: string }>();
+  return results.filter((r): r is { inbound: string; outbound: string } => !!r.inbound);
+}
