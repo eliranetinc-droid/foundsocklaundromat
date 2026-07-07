@@ -1,0 +1,55 @@
+const STOP = new Set(['the','a','an','is','are','was','were','be','to','of','and','or','in','on','at','it','my','your','you','i','we','do','does','did','for','with','this','that','have','has','had','not','no','can','will','would','me','our','us','if','so','but','as','from','they','them','he','she','get','got','out','up','am','pm']);
+
+export function tokenize(s: string): string[] {
+  return (s.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter(t => t.length >= 3 && !STOP.has(t));
+}
+
+export function selectExamples(
+  pairs: { inbound: string; outbound: string }[],
+  triggerText: string,
+  k: number,
+): { inbound: string; outbound: string }[] {
+  const trig = new Set(tokenize(triggerText));
+  if (trig.size === 0) return [];
+  const scored = pairs.map((p, i) => {
+    const toks = new Set(tokenize(p.inbound));
+    let score = 0;
+    for (const t of toks) if (trig.has(t)) score++;
+    return { p, score, i };
+  });
+  return scored
+    .filter(s => s.score > 0)
+    .sort((a, b) => (b.score - a.score) || (a.i - b.i)) // ties → earlier (pairs are newest-first)
+    .slice(0, k)
+    .map(s => s.p);
+}
+
+const SYSTEM = [
+  'You draft email replies for the owner of The Found Sock Laundromat, a self-service laundromat at 76 Washington St, Brighton MA (open daily 6 AM–11 PM).',
+  'Match the owner\'s tone and phrasing from the EXAMPLES. Be brief, warm, and concrete.',
+  'Never invent policies, prices, refunds, or promises that are not supported by the HOUSE RULES or the EXAMPLES.',
+  'If the customer\'s message is not clearly covered by the examples or house rules, reply with exactly the single word SKIP and nothing else.',
+  'Do not add a subject line or an email signature — those are added automatically. Write only the reply body.',
+].join(' ');
+
+export function buildPrompt(input: {
+  houseRules: string;
+  examples: { inbound: string; outbound: string }[];
+  ticketSubject: string;
+  threadText: string;
+}): { system: string; user: string } {
+  const ex = input.examples.length
+    ? input.examples.map((e, i) => `Example ${i + 1}:\nCustomer: ${e.inbound}\nOwner: ${e.outbound}`).join('\n\n')
+    : '(no close examples on file)';
+  const user = [
+    `HOUSE RULES:\n${input.houseRules || '(none set)'}`,
+    ``,
+    `EXAMPLES (past replies by the owner):\n${ex}`,
+    ``,
+    `NEW TICKET — subject: ${input.ticketSubject}`,
+    `Latest customer message(s):\n${input.threadText}`,
+    ``,
+    `Write the owner's reply now (or SKIP):`,
+  ].join('\n');
+  return { system: SYSTEM, user };
+}
