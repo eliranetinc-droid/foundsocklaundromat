@@ -146,3 +146,40 @@ export async function recentMessages(db: D1Database, limit = 8) {
   ).bind(limit).all<{ ticket_id: string; direction: string; body: string; created_at: string; public_id: string; customer_name: string; subject: string }>();
   return results;
 }
+
+export async function ticketsPerDay(db: D1Database, days: number) {
+  const { results } = await db.prepare(
+    `SELECT substr(created_at,1,10) AS day, COUNT(*) AS n FROM tickets WHERE created_at >= ? GROUP BY day ORDER BY day ASC`
+  ).bind(new Date(Date.now() - days * 86400000).toISOString()).all<{ day: string; n: number }>();
+  return results;
+}
+
+export async function medianFirstReplyHours(db: D1Database, days: number): Promise<number | null> {
+  const since = new Date(Date.now() - days * 86400000).toISOString();
+  const { results } = await db.prepare(
+    `WITH firsts AS (
+       SELECT t.id,
+         (SELECT MIN(created_at) FROM messages m WHERE m.ticket_id=t.id AND m.direction='inbound')  AS fin,
+         (SELECT MIN(created_at) FROM messages m WHERE m.ticket_id=t.id AND m.direction='outbound') AS fout
+       FROM tickets t WHERE t.created_at >= ?
+     )
+     SELECT fin, fout FROM firsts WHERE fin IS NOT NULL AND fout IS NOT NULL AND fout > fin`
+  ).bind(since).all<{ fin: string; fout: string }>();
+  if (results.length === 0) return null;
+  const hours = results
+    .map(r => (Date.parse(r.fout) - Date.parse(r.fin)) / 3_600_000)
+    .sort((a, b) => a - b);
+  const mid = Math.floor(hours.length / 2);
+  const med = hours.length % 2 ? hours[mid] : (hours[mid - 1] + hours[mid]) / 2;
+  return Math.round(med * 10) / 10;
+}
+
+/** Open tickets that are unread OR stale (no activity in 48h), oldest first. */
+export async function needsAttention(db: D1Database, staleHours = 48, limit = 20): Promise<TicketRow[]> {
+  const cutoff = new Date(Date.now() - staleHours * 3_600_000).toISOString();
+  const { results } = await db.prepare(
+    `SELECT * FROM tickets WHERE status = 'open' AND (unread = 1 OR last_activity_at <= ?)
+     ORDER BY last_activity_at ASC LIMIT ?`
+  ).bind(cutoff, limit).all<TicketRow>();
+  return results;
+}
