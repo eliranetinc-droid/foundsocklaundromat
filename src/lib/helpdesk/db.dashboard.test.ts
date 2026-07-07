@@ -31,9 +31,17 @@ describe('medianFirstReplyHours', () => {
 });
 
 describe('ticketsPerDay', () => {
-  test('returns day/count rows', async () => {
-    const db = fakeDb([{ match: /GROUP BY day/, rows: [{ day: '2026-07-01', n: 2 }] }]);
-    expect(await ticketsPerDay(db, 14)).toEqual([{ day: '2026-07-01', n: 2 }]);
+  test('buckets created_at timestamps by ET day (not UTC)', async () => {
+    // Two on Jul 1 (ET), one late-evening instant that is Jul 7 UTC but Jul 6 ET.
+    const db = fakeDb([{ match: /SELECT created_at FROM tickets/, rows: [
+      { created_at: '2026-07-01T15:00:00.000Z' }, // Jul 1 ET
+      { created_at: '2026-07-01T18:00:00.000Z' }, // Jul 1 ET
+      { created_at: '2026-07-07T02:30:00.000Z' }, // 10:30pm Jul 6 ET (would be Jul 7 under UTC slicing)
+    ] }]);
+    expect(await ticketsPerDay(db, 14)).toEqual([
+      { day: '2026-07-01', n: 2 },
+      { day: '2026-07-06', n: 1 },
+    ]);
   });
 });
 

@@ -1,5 +1,6 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import type { TicketSource } from './templates';
+import { etDay, etDayHour } from './pv';
 
 export interface TicketRow {
   id: string; public_id: string; reply_token: string;
@@ -99,14 +100,17 @@ export const touchActivity = (db: D1Database, id: string, unread: 0 | 1) =>
   db.prepare(`UPDATE tickets SET last_activity_at = ?, unread = ? WHERE id = ?`).bind(now(), unread, id).run();
 
 // ---- analytics ----
+// Days/hours are bucketed in America/New_York (the laundromat's zone) so the
+// admin charts line up with the owner's clock. `sinceDay` is likewise ET.
 export const insertPageview = (db: D1Database, pv: { path: string; referrerHost: string; country: string; device: string }) => {
-  const ts = now();
+  const d = new Date();
+  const { day, hour } = etDayHour(d);
   return db.prepare(
-    `INSERT INTO pageviews (ts, day, path, referrer_host, country, device) VALUES (?, ?, ?, ?, ?, ?)`
-  ).bind(ts, ts.slice(0, 10), pv.path, pv.referrerHost, pv.country, pv.device).run();
+    `INSERT INTO pageviews (ts, day, hour, path, referrer_host, country, device) VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).bind(d.toISOString(), day, hour, pv.path, pv.referrerHost, pv.country, pv.device).run();
 };
 
-const sinceDay = (days: number) => new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+const sinceDay = (days: number) => etDay(new Date(Date.now() - days * 86400000));
 
 export async function viewsByDay(db: D1Database, days: number) {
   const { results } = await db.prepare(
@@ -147,11 +151,21 @@ export async function recentMessages(db: D1Database, limit = 8) {
   return results;
 }
 
-export async function ticketsPerDay(db: D1Database, days: number) {
+/**
+ * New tickets per ET calendar day. Bucketing is done in JS (not SQL) because
+ * created_at is stored UTC and SQLite has no timezone support — grouping by
+ * substr() would mis-bucket tickets created 8pm–midnight ET onto the next day.
+ */
+export async function ticketsPerDay(db: D1Database, days: number): Promise<{ day: string; n: number }[]> {
   const { results } = await db.prepare(
-    `SELECT substr(created_at,1,10) AS day, COUNT(*) AS n FROM tickets WHERE created_at >= ? GROUP BY day ORDER BY day ASC`
-  ).bind(new Date(Date.now() - days * 86400000).toISOString()).all<{ day: string; n: number }>();
-  return results;
+    `SELECT created_at FROM tickets WHERE created_at >= ?`
+  ).bind(new Date(Date.now() - days * 86400000).toISOString()).all<{ created_at: string }>();
+  const counts = new Map<string, number>();
+  for (const r of results) {
+    const day = etDay(new Date(r.created_at));
+    counts.set(day, (counts.get(day) ?? 0) + 1);
+  }
+  return [...counts.entries()].map(([day, n]) => ({ day, n })).sort((a, b) => a.day.localeCompare(b.day));
 }
 
 export async function medianFirstReplyHours(db: D1Database, days: number): Promise<number | null> {

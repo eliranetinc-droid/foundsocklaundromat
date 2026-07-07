@@ -26,3 +26,18 @@ export function isValidPath(p: unknown): p is string {
     && !p.startsWith('/api')
     && !p.startsWith('/admin');
 }
+
+/** Calendar day (YYYY-MM-DD) of an instant in America/New_York. */
+export function etDay(d: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(d);
+}
+
+/** Calendar day + 0–23 hour of an instant, in America/New_York. */
+export function etDayHour(d: Date): { day: string; hour: number } {
+  const hour = Number(new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York', hour: '2-digit', hour12: false,
+  }).format(d)) % 24; // '24' → 0 guard
+  return { day: etDay(d), hour };
+}

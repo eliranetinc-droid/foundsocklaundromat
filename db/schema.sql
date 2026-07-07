@@ -34,10 +34,14 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 CREATE INDEX IF NOT EXISTS idx_messages_ticket ON messages(ticket_id, created_at);
 
+-- day + hour are bucketed in America/New_York at insert time (see db.ts).
+-- MIGRATION 2026-07 (analytics hour): existing databases need
+--   ALTER TABLE pageviews ADD COLUMN hour INTEGER;
 CREATE TABLE IF NOT EXISTS pageviews (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   ts TEXT NOT NULL,
   day TEXT NOT NULL,
+  hour INTEGER,
   path TEXT NOT NULL,
   referrer_host TEXT,
   country TEXT,

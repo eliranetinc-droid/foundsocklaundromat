@@ -1,5 +1,5 @@
 import { test, expect, describe } from 'vitest';
-import { isBotUA, classifyDevice, referrerHost, isValidPath } from './pv';
+import { isBotUA, classifyDevice, referrerHost, isValidPath, etDay, etDayHour } from './pv';
 
 describe('isBotUA', () => {
   test('flags bots and empty UA', () => {
@@ -41,5 +41,20 @@ describe('isValidPath', () => {
     expect(isValidPath('/api/pv')).toBe(false);
     expect(isValidPath('nope')).toBe(false);
     expect(isValidPath('/' + 'x'.repeat(200))).toBe(false);
+  });
+});
+
+describe('etDay / etDayHour', () => {
+  test('late-evening ET stays on the ET calendar day, not UTC', () => {
+    // 2026-07-07T02:30:00Z is 2026-07-06 22:30 EDT
+    expect(etDay(new Date('2026-07-07T02:30:00.000Z'))).toBe('2026-07-06');
+    const r = etDayHour(new Date('2026-07-07T02:30:00.000Z'));
+    expect(r.day).toBe('2026-07-06');
+    expect(r.hour).toBe(22);
+  });
+  test('midday UTC → same ET day, noon hour', () => {
+    const r = etDayHour(new Date('2026-07-01T16:00:00.000Z')); // 12:00 EDT
+    expect(r.day).toBe('2026-07-01');
+    expect(r.hour).toBe(12);
   });
 });
