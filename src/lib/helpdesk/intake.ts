@@ -4,6 +4,7 @@ import { createTicket, addMessage, type NewTicket } from './db';
 import { confirmationEmail, notificationEmail, type TicketSource } from './templates';
 import { sendEmail } from './resend';
 import { generateDraftForTicket } from './ai';
+import { notifyPushAll } from './webpush';
 
 export interface IntakeInput {
   source: TicketSource;
@@ -57,6 +58,12 @@ export async function intakeTicket(env: HelpdeskEnv, input: IntakeInput): Promis
   });
   const notified = await sendEmail(env, { to: env.NOTIFY_EMAIL, subject: note.subject, text: note.text, html: note.html });
   if (!notified.ok) console.error('[helpdesk] owner notification failed:', notified.error);
+
+  await notifyPushAll(env, {
+    title: `🧺 New ticket [${publicId}]`,
+    body: `${input.customerName}: ${input.subject}`.slice(0, 120),
+    url: `/admin/tickets/${id}/`,
+  });
 
   return { id, publicId };
 }

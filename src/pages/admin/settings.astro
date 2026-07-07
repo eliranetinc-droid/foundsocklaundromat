@@ -2,7 +2,7 @@
 export const prerender = false;
 
 import AdminLayout from '../../components/admin/AdminLayout.astro';
-import { getHelpdeskEnv, ADMIN_TIMEZONES } from '../../lib/helpdesk/env';
+import { getHelpdeskEnv, ADMIN_TIMEZONES, VAPID_PUBLIC_KEY } from '../../lib/helpdesk/env';
 import { getSetting, getTimezone } from '../../lib/helpdesk/db';
 
 const env = await getHelpdeskEnv();
@@ -24,6 +24,15 @@ const hasKey = !!(env as any).ANTHROPIC_API_KEY;
     <select id="timezone" class="w-full sm:w-80 border-[1.5px] border-line rounded-xl px-3.5 py-2.5 text-sm bg-white focus:border-brand-blue focus:outline-none">
       {ADMIN_TIMEZONES.map(tz => <option value={tz.value} selected={tz.value === timezone}>{tz.label}</option>)}
     </select>
+  </section>
+
+  <section class="bg-white rounded-2xl border border-line shadow-sm p-5 mb-5 max-w-2xl">
+    <h2 class="text-sm font-bold mb-1">Notifications</h2>
+    <p class="text-sm opacity-60 mb-4">Get a push on this device when a customer opens a ticket or replies. Requires the installed app (Add to Home Screen) on iPhone.</p>
+    <div class="flex items-center gap-3" data-vapid={VAPID_PUBLIC_KEY}>
+      <button id="pushBtn" class="bg-brand-blue text-white font-bold text-sm px-6 py-2.5 rounded-full disabled:opacity-40" disabled>Checking…</button>
+      <span id="pushStatus" class="text-sm opacity-60" aria-live="polite"></span>
+    </div>
   </section>
 
   <section class="bg-white rounded-2xl border border-line shadow-sm p-5 mb-5 max-w-2xl">
@@ -89,4 +98,52 @@ const hasKey = !!(env as any).ANTHROPIC_API_KEY;
     }
     saving = false;
   });
+</script>
+
+<script>
+  const pushBtn = document.getElementById('pushBtn') as HTMLButtonElement;
+  const pushStatus = document.getElementById('pushStatus')!;
+  const vapidKey = (pushBtn.parentElement as HTMLElement).dataset.vapid!;
+
+  function keyBytes(b64u: string): Uint8Array {
+    const pad = '='.repeat((4 - (b64u.length % 4)) % 4);
+    const bin = atob((b64u + pad).replace(/-/g, '+').replace(/_/g, '/'));
+    return Uint8Array.from(bin, c => c.charCodeAt(0));
+  }
+
+  async function refresh() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      pushBtn.disabled = true; pushBtn.textContent = 'Not available';
+      pushStatus.textContent = 'On iPhone: install via Add to Home Screen first, then open the app.';
+      return;
+    }
+    const reg = await navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin/' });
+    const sub = await reg.pushManager.getSubscription();
+    pushBtn.disabled = false;
+    if (sub) { pushBtn.textContent = 'Disable on this device'; pushStatus.textContent = 'Enabled ✓'; }
+    else { pushBtn.textContent = 'Enable on this device'; pushStatus.textContent = ''; }
+  }
+
+  pushBtn.addEventListener('click', async () => {
+    pushBtn.disabled = true;
+    try {
+      const reg = await navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin/' });
+      const existing = await reg.pushManager.getSubscription();
+      if (existing) {
+        await fetch('/api/admin/push-unsubscribe/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: existing.endpoint }) });
+        await existing.unsubscribe();
+      } else {
+        const perm = await Notification.requestPermission();
+        if (perm !== 'granted') { pushStatus.textContent = 'Permission was declined.'; await refresh(); return; }
+        const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(vapidKey) as BufferSource });
+        const res = await fetch('/api/admin/push-subscribe/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub.toJSON()) });
+        if (!res.ok) { pushStatus.textContent = 'Failed to save — try again.'; await sub.unsubscribe(); }
+      }
+    } catch (e) {
+      pushStatus.textContent = 'Failed — try again.';
+    }
+    await refresh();
+  });
+
+  refresh();
 </script>

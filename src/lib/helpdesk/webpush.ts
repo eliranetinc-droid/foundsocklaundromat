@@ -1,4 +1,5 @@
 import { VAPID_PUBLIC_KEY, VAPID_SUBJECT, type HelpdeskEnv } from './env';
+import { listPushSubscriptions, disablePushSubscription } from './db';
 
 // Minimal Web Push sender for Cloudflare Workers (WebCrypto only).
 // Payload encryption: RFC 8291 (aes128gcm). Auth: RFC 8292 (VAPID, ES256).
@@ -120,5 +121,20 @@ export async function sendPush(env: Pick<HelpdeskEnv, 'VAPID_PRIVATE_JWK'>, sub:
   } catch (e) {
     console.error('[push] send failed:', e);
     return 0;
+  }
+}
+
+/** Push to every enrolled device. Failure-tolerant; dead endpoints are disabled. */
+export async function notifyPushAll(env: HelpdeskEnv, n: { title: string; body: string; url: string }): Promise<void> {
+  try {
+    if (!env.VAPID_PRIVATE_JWK) return;
+    const subs = await listPushSubscriptions(env.DB);
+    for (const sub of subs) {
+      const status = await sendPush(env, sub, n);
+      if (status === 404 || status === 410) await disablePushSubscription(env.DB, sub.endpoint);
+      else if (status !== 201 && status !== 200) console.error('[push] non-ok status', status, 'for', sub.endpoint.slice(0, 40));
+    }
+  } catch (e) {
+    console.error('[push] notify failed:', e);
   }
 }

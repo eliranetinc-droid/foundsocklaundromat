@@ -7,6 +7,7 @@ import { intakeTicket, sanitizeFilename } from './intake';
 import { notificationEmail } from './templates';
 import { sendEmail } from './resend';
 import { generateDraftForTicket } from './ai';
+import { notifyPushAll } from './webpush';
 
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 const MAX_ATTACHMENTS = 5;
@@ -96,4 +97,10 @@ export async function handleInboundEmail(message: ForwardableEmailMessage, env: 
   });
   const sent = await sendEmail(env, { to: env.NOTIFY_EMAIL, subject: note.subject, text: note.text, html: note.html });
   if (!sent.ok) console.error('[helpdesk] inbound notification failed:', sent.error);
+
+  await notifyPushAll(env, {
+    title: `↩️ Reply on [${ticket.public_id}]`,
+    body: `${ticket.customer_name}: ${(body || '[image attachment]')}`.slice(0, 120),
+    url: `/admin/tickets/${ticket.id}/`,
+  });
 }
