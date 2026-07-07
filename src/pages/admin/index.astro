@@ -2,55 +2,106 @@
 export const prerender = false;
 
 import AdminLayout from '../../components/admin/AdminLayout.astro';
+import KpiTile from '../../components/admin/KpiTile.astro';
 import { getHelpdeskEnv } from '../../lib/helpdesk/env';
-import { countOpenTickets, countUnreadTickets, recentMessages, viewsByDay } from '../../lib/helpdesk/db';
+import {
+  countOpenTickets, recentMessages, viewsByDay, topPages,
+  ticketsPerDay, medianFirstReplyHours, needsAttention,
+} from '../../lib/helpdesk/db';
+import { etDay } from '../../lib/helpdesk/pv';
 
 const env = await getHelpdeskEnv();
-const [openCount, unreadCount, recent, views] = await Promise.all([
+const [openCount, recent, views14, pages, tix14, medHrs, attention] = await Promise.all([
   countOpenTickets(env.DB),
-  countUnreadTickets(env.DB),
   recentMessages(env.DB, 8),
   viewsByDay(env.DB, 14),
+  topPages(env.DB, 14, 5),
+  ticketsPerDay(env.DB, 14),
+  medianFirstReplyHours(env.DB, 30),
+  needsAttention(env.DB),
 ]);
-const maxViews = Math.max(1, ...views.map(v => v.views));
+
+// Build gap-filled 14-day series (ET) for the sparklines. viewsByDay + ticketsPerDay
+// both key on ET days (etDay), so these exact-match lookups align.
 const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const days: string[] = Array.from({ length: 14 }, (_, i) => etDay(new Date(Date.now() - (13 - i) * 86400000)));
+const seriesFrom = (rows: { day?: string }[], key: 'views' | 'n') => {
+  const map = new Map(rows.map((r: any) => [r.day, r[key] as number]));
+  return days.map(d => map.get(d) ?? 0);
+};
+const viewsSeries = seriesFrom(views14 as any, 'views');
+const tixSeries = seriesFrom(tix14 as any, 'n');
+const views7 = viewsSeries.slice(7).reduce((a, b) => a + b, 0);
+const viewsPrev7 = viewsSeries.slice(0, 7).reduce((a, b) => a + b, 0);
+const tix7 = tixSeries.slice(7).reduce((a, b) => a + b, 0);
+const tixPrev7 = tixSeries.slice(0, 7).reduce((a, b) => a + b, 0);
+const maxPage = Math.max(1, ...pages.map(p => p.views));
+
+const age = (iso: string) => {
+  const h = (Date.now() - Date.parse(iso)) / 3_600_000;
+  return h < 1 ? `${Math.max(1, Math.round(h * 60))}m` : h < 48 ? `${Math.round(h)}h` : `${Math.round(h / 24)}d`;
+};
 ---
 <AdminLayout title="Dashboard">
-  <h1 class="text-3xl font-bold tracking-tight mb-6">Dashboard</h1>
-
-  <div class="grid grid-cols-2 gap-4 mb-8 max-w-md">
-    <a href="/admin/tickets/" class="bg-white rounded-2xl border border-line p-5 hover:border-brand-blue/40">
-      <p class="text-4xl font-bold">{openCount}</p>
-      <p class="text-xs uppercase tracking-widest opacity-60 mt-1">Open tickets</p>
-    </a>
-    <a href="/admin/tickets/" class="bg-white rounded-2xl border border-line p-5 hover:border-brand-blue/40">
-      <p class="text-4xl font-bold text-brand-red">{unreadCount}</p>
-      <p class="text-xs uppercase tracking-widest opacity-60 mt-1">Unread</p>
-    </a>
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+    <KpiTile label="Visitors · 7d" value={views7} spark={viewsSeries} color="#2f6f9f" delta={{ current: views7, prev: viewsPrev7 }} />
+    <KpiTile label="Open tickets" value={openCount} spark={tixSeries} color="#16a34a" />
+    <KpiTile label="New tickets · 7d" value={tix7} spark={tixSeries} color="#16a34a" delta={{ current: tix7, prev: tixPrev7 }} />
+    <KpiTile label="Avg first reply" value={medHrs === null ? '—' : `${medHrs}h`} />
   </div>
 
-  <h2 class="text-xs uppercase tracking-[0.2em] text-brand-blue font-bold mb-3">Last 14 days — visitors</h2>
-  <div class="bg-white rounded-2xl border border-line p-5 mb-8">
-    {views.length === 0 ? <p class="text-sm opacity-60">No data yet.</p> : (
-      <div class="flex items-end gap-1 h-24">
-        {views.map(v => (
-          <div class="flex-1 bg-brand-blue/80 rounded-t" style={`height:${Math.max(4, Math.round((v.views / maxViews) * 100))}%`} title={`${v.day}: ${v.views}`}></div>
+  <div class="grid lg:grid-cols-3 gap-4 mb-6">
+    <!-- Needs attention -->
+    <section class="lg:col-span-2 bg-white rounded-2xl border border-line shadow-sm">
+      <div class="px-5 py-3.5 border-b border-line flex items-center justify-between">
+        <h2 class="text-sm font-bold">Needs attention</h2>
+        <a href="/admin/tickets/" class="text-xs font-medium text-brand-blue hover:text-brand-red">All tickets →</a>
+      </div>
+      <div class="divide-y divide-line">
+        {attention.length === 0 && <p class="px-5 py-8 text-sm text-center opacity-50">All caught up. 🧺</p>}
+        {attention.map(t => (
+          <a href={`/admin/tickets/${t.id}/`} class="flex items-center gap-3 px-5 py-3 hover:bg-cream/60">
+            {t.unread === 1 && <span class="w-2 h-2 rounded-full bg-brand-red shrink-0" title="Unread"></span>}
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-blue/10 text-brand-blue shrink-0">{t.public_id}</span>
+            <span class="text-sm truncate flex-1 min-w-0"><span class="font-semibold">{t.customer_name}</span> · {t.subject}</span>
+            <span class="text-xs opacity-50 shrink-0">{age(t.last_activity_at)}</span>
+          </a>
         ))}
       </div>
-    )}
+    </section>
+
+    <!-- Traffic -->
+    <section class="bg-white rounded-2xl border border-line shadow-sm">
+      <div class="px-5 py-3.5 border-b border-line flex items-center justify-between">
+        <h2 class="text-sm font-bold">Traffic · 14d</h2>
+        <a href="/admin/analytics/" class="text-xs font-medium text-brand-blue hover:text-brand-red">Analytics →</a>
+      </div>
+      <div class="p-5 space-y-3">
+        {pages.length === 0 && <p class="text-sm opacity-50">No data yet.</p>}
+        {pages.map(p => (
+          <div>
+            <div class="flex justify-between text-xs mb-0.5"><span class="truncate">{p.path}</span><span class="opacity-55 ml-2 shrink-0">{p.views}</span></div>
+            <div class="h-1.5 bg-line rounded-full overflow-hidden"><div class="h-full bg-brand-blue rounded-full" style={`width:${Math.round((p.views / maxPage) * 100)}%`}></div></div>
+          </div>
+        ))}
+      </div>
+    </section>
   </div>
 
-  <h2 class="text-xs uppercase tracking-[0.2em] text-brand-blue font-bold mb-3">Recent activity</h2>
-  <div class="space-y-2">
-    {recent.length === 0 && <p class="text-sm opacity-60">No messages yet.</p>}
-    {recent.map(m => (
-      <a href={`/admin/tickets/${m.ticket_id}/`} class="block bg-white rounded-xl border border-line px-4 py-3 hover:border-brand-blue/40">
-        <div class="flex justify-between gap-3 text-xs opacity-60 mb-0.5">
-          <span>{m.public_id} · {m.customer_name} · {m.direction === 'inbound' ? 'customer' : 'you'}</span>
-          <span>{fmt(m.created_at)}</span>
-        </div>
-        <p class="text-sm truncate">{m.body}</p>
-      </a>
-    ))}
-  </div>
+  <!-- Recent activity -->
+  <section class="bg-white rounded-2xl border border-line shadow-sm">
+    <div class="px-5 py-3.5 border-b border-line"><h2 class="text-sm font-bold">Recent activity</h2></div>
+    <div class="divide-y divide-line">
+      {recent.length === 0 && <p class="px-5 py-8 text-sm text-center opacity-50">No messages yet.</p>}
+      {recent.map(m => (
+        <a href={`/admin/tickets/${m.ticket_id}/`} class="block px-5 py-3 hover:bg-cream/60">
+          <div class="flex justify-between gap-3 text-xs opacity-55 mb-0.5">
+            <span>{m.public_id} · {m.customer_name} · {m.direction === 'inbound' ? 'customer' : 'you'}</span>
+            <span>{fmt(m.created_at)}</span>
+          </div>
+          <p class="text-sm truncate">{m.body}</p>
+        </a>
+      ))}
+    </div>
+  </section>
 </AdminLayout>

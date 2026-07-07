@@ -1,0 +1,16 @@
+---
+export interface Props { data: number[]; color?: string; height?: number; }
+const { data, color = '#2f6f9f', height = 34 } = Astro.props;
+const w = 100, h = height;
+const max = Math.max(1, ...data);
+const n = data.length;
+const pts = data.map((v, i) => [n <= 1 ? 0 : (i / (n - 1)) * w, h - (v / max) * (h - 3) - 2] as const);
+const line = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+const area = n ? `M0,${h} ${pts.map(p => `L${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')} L${w},${h} Z` : '';
+---
+{n > 0 && (
+  <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" class="w-full" style={`height:${h}px`} aria-hidden="true">
+    <path d={area} fill={color} fill-opacity="0.12" />
+    <path d={line} fill="none" stroke={color} stroke-width="1.5" vector-effect="non-scaling-stroke" />
+  </svg>
+)}

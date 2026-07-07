@@ -1,0 +1,27 @@
+---
+import Sparkline from './Sparkline.astro';
+export interface Props {
+  label: string; value: string | number; spark?: number[]; color?: string;
+  delta?: { current: number; prev: number; lowerIsBetter?: boolean } | null;
+}
+const { label, value, spark = [], color = '#2f6f9f', delta = null } = Astro.props;
+let chip: { text: string; cls: string } | null = null;
+if (delta) {
+  const { current, prev, lowerIsBetter } = delta;
+  const pct = prev === 0 ? (current === 0 ? 0 : 100) : Math.round(((current - prev) / prev) * 100);
+  const up = pct > 0, flat = pct === 0;
+  const good = flat ? false : lowerIsBetter ? !up : up;
+  chip = {
+    text: `${up ? '▲' : flat ? '■' : '▼'} ${Math.abs(pct)}%`,
+    cls: flat ? 'bg-slate-100 text-slate-500' : good ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600',
+  };
+}
+---
+<div class="bg-white rounded-2xl border border-line p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition">
+  <div class="flex items-center justify-between gap-2">
+    <p class="text-[11px] uppercase tracking-widest opacity-55 font-semibold">{label}</p>
+    {chip && <span class={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${chip.cls}`}>{chip.text}</span>}
+  </div>
+  <p class="text-3xl font-bold mt-1 mb-2">{value}</p>
+  {spark.length > 0 && <Sparkline data={spark} color={color} />}
+</div>
