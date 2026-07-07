@@ -48,7 +48,7 @@ const hasKey = !!(env as any).ANTHROPIC_API_KEY;
       placeholder="e.g. Refunds for machine failures within 7 days. Open 6am–11pm daily. Detergent vending by the door.">{houseRules ?? ''}</textarea>
 
     <div class="flex items-center gap-3 mt-3">
-      <button id="saveBtn" class="bg-brand-red text-white font-bold text-sm px-7 py-2.5 rounded-full disabled:opacity-50">Save</button>
+      <button id="saveBtn" disabled class="bg-brand-red text-white font-bold text-sm px-7 py-2.5 rounded-full disabled:opacity-40 disabled:cursor-not-allowed">Save</button>
       <span id="saveStatus" class="text-sm opacity-60" aria-live="polite"></span>
     </div>
   </section>
@@ -59,9 +59,22 @@ const hasKey = !!(env as any).ANTHROPIC_API_KEY;
   const rulesEl = document.getElementById('houseRules') as HTMLTextAreaElement;
   const tzEl = document.getElementById('timezone') as HTMLSelectElement;
   const statusEl = document.getElementById('saveStatus')!;
+  const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
+
+  // Save is enabled only when something differs from the loaded state.
+  const initial = { enabled: enabledEl.checked, rules: rulesEl.value, tz: tzEl.value };
+  const dirty = () =>
+    enabledEl.checked !== initial.enabled || rulesEl.value !== initial.rules || tzEl.value !== initial.tz;
+  const syncBtn = () => { saveBtn.disabled = !dirty(); };
+  for (const el of [enabledEl, rulesEl, tzEl]) {
+    el.addEventListener('input', syncBtn);
+    el.addEventListener('change', syncBtn);
+  }
+  syncBtn();
+
   let saving = false;
-  document.getElementById('saveBtn')!.addEventListener('click', async () => {
-    if (saving) return;
+  saveBtn.addEventListener('click', async () => {
+    if (saving || !dirty()) return;
     saving = true; statusEl.textContent = 'Saving…';
     try {
       const res = await fetch('/api/admin/settings/', {
