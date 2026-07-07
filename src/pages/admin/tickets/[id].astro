@@ -4,6 +4,7 @@ export const prerender = false;
 import AdminLayout from '../../../components/admin/AdminLayout.astro';
 import { getHelpdeskEnv } from '../../../lib/helpdesk/env';
 import { getTicket, getMessages, markRead } from '../../../lib/helpdesk/db';
+import { latestSuggestedDraft } from '../../../lib/helpdesk/db';
 
 const id = Astro.params.id ?? '';
 const env = await getHelpdeskEnv();
@@ -12,6 +13,7 @@ if (!ticket) return new Response('Not found', { status: 404 });
 
 const messages = await getMessages(env.DB, ticket.id);
 if (ticket.unread === 1) await markRead(env.DB, ticket.id);
+const draft = await latestSuggestedDraft(env.DB, ticket.id);
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 const details: [string, string | null][] = [
@@ -86,6 +88,19 @@ const atts = (json: string | null): string[] => { try { return JSON.parse(json ?
     ))}
   </div>
 
+  {draft && (
+    <div id="aiPanel" data-draft={draft.id} class="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4">
+      <p class="text-[11px] uppercase tracking-wider font-bold text-amber-700 mb-1.5">🤖 Suggested reply</p>
+      <p id="aiBody" class="text-sm whitespace-pre-wrap text-brand-blue-darker mb-3">{draft.body}</p>
+      <div class="flex flex-wrap gap-2">
+        <button id="aiUse" class="text-sm font-bold px-4 py-2 rounded-full bg-white border border-amber-300 hover:border-amber-500">Use &amp; edit</button>
+        <button id="aiSend" class="text-sm font-bold px-4 py-2 rounded-full bg-brand-blue text-white hover:opacity-90">Send as-is →</button>
+        <button id="aiDismiss" class="text-sm font-semibold px-4 py-2 rounded-full text-amber-700 hover:underline">Dismiss</button>
+        <span id="aiStatus" class="text-sm self-center opacity-60"></span>
+      </div>
+    </div>
+  )}
+
   <form id="replyForm" data-ticket={ticket.id} class="bg-white rounded-2xl border border-line p-4">
     <label class="text-xs font-bold uppercase tracking-wider text-brand-blue block mb-2">Reply to {ticket.customer_name}</label>
     <textarea name="body" required rows="4" maxlength="10000"
@@ -145,4 +160,24 @@ const atts = (json: string | null): string[] => { try { return JSON.parse(json ?
     const next = statusBtn.dataset.status === 'open' ? 'closed' : 'open';
     if (await post('/api/admin/status/', { ticketId, status: next })) location.reload();
   });
+
+  const aiPanel = document.getElementById('aiPanel');
+  if (aiPanel) {
+    const draftId = Number((aiPanel as HTMLElement).dataset.draft);
+    const aiBody = document.getElementById('aiBody')!.textContent ?? '';
+    const aiStatus = document.getElementById('aiStatus')!;
+    const markDraft = (status: string) =>
+      fetch('/api/admin/draft-status/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ draftId, status }) });
+
+    document.getElementById('aiUse')!.addEventListener('click', () => {
+      ta.value = aiBody; ta.focus();
+      markDraft('used'); aiPanel.remove();
+    });
+    document.getElementById('aiSend')!.addEventListener('click', async () => {
+      aiStatus.textContent = 'Sending…';
+      if (await post('/api/admin/reply/', { ticketId, body: aiBody })) { await markDraft('sent_as_is'); location.reload(); }
+      else aiStatus.textContent = '';
+    });
+    document.getElementById('aiDismiss')!.addEventListener('click', () => { markDraft('dismissed'); aiPanel.remove(); });
+  }
 </script>
