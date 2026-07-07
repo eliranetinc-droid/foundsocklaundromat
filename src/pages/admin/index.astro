@@ -50,18 +50,18 @@ if (period === 'today') {
   periodLabel = 'Today';
   const today = dayAgo(0);
   const yesterday = dayAgo(1);
-  const [hours, todayViews, yesterdayViews] = await Promise.all([
+  const [hours, todayViews, yesterdayViews, tix2] = await Promise.all([
     hoursOfDay(env.DB, 1),
     viewsInRange(env.DB, today, today),
     viewsInRange(env.DB, yesterday, yesterday),
+    ticketsPerDay(env.DB, 2),
   ]);
   hourArr = Array.from({ length: 24 }, (_, h) => hours.find(x => x.hour === h)?.views ?? 0);
   visitorsVal = todayViews;
   visitorsPrev = yesterdayViews;
   visitorsSpark = hourArr;
 
-  // Tickets: bucket today's/yesterday's tickets from a 2-day fetch (ET days).
-  const tix2 = await ticketsPerDay(env.DB, 2);
+  // Tickets: bucket today's/yesterday's tickets from the 2-day fetch (ET days).
   const tmap = new Map(tix2.map(r => [r.day, r.n]));
   ticketsVal = tmap.get(today) ?? 0;
   ticketsPrev = tmap.get(yesterday) ?? 0;
@@ -106,7 +106,7 @@ if (period === 'today') {
     <KpiTile label="Avg reply" value={medHrs === null ? '—' : `${medHrs}h`} icon="clock" />
   </div>
 
-  <div class="grid lg:grid-cols-3 gap-4 mb-6">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
     <!-- Needs attention -->
     <section class="lg:col-span-2 bg-white rounded-2xl border border-line shadow-sm">
       <div class="px-5 py-3.5 border-b border-line flex items-center justify-between">
@@ -163,7 +163,7 @@ if (period === 'today') {
     </section>
   </div>
 
-  <div class="grid lg:grid-cols-3 gap-4 mb-6">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
     <!-- Machine watch -->
     <section class="bg-white rounded-2xl border border-line shadow-sm">
       <div class="px-5 py-3.5 border-b border-line flex items-center justify-between">
