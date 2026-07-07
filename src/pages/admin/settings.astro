@@ -1,0 +1,66 @@
+---
+export const prerender = false;
+
+import AdminLayout from '../../components/admin/AdminLayout.astro';
+import { getHelpdeskEnv } from '../../lib/helpdesk/env';
+import { getSetting } from '../../lib/helpdesk/db';
+
+const env = await getHelpdeskEnv();
+const [aiEnabled, houseRules] = await Promise.all([
+  getSetting(env.DB, 'ai_enabled'),
+  getSetting(env.DB, 'house_rules'),
+]);
+const enabled = aiEnabled !== '0'; // default on
+const hasKey = !!(env as any).ANTHROPIC_API_KEY;
+---
+<AdminLayout title="Settings">
+  <h1 class="text-2xl font-bold tracking-tight mb-5">Settings</h1>
+
+  <section class="bg-white rounded-2xl border border-line shadow-sm p-5 mb-5 max-w-2xl">
+    <h2 class="text-sm font-bold mb-1">AI reply assistant</h2>
+    <p class="text-sm opacity-60 mb-4">Drafts replies to repeat questions from your past answers. Nothing is ever sent without your approval.</p>
+
+    {!hasKey && (
+      <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm mb-4">
+        No API key yet. Add a Worker secret named <code class="font-mono">ANTHROPIC_API_KEY</code> in the Cloudflare dashboard to turn this on.
+      </div>
+    )}
+
+    <label class="flex items-center gap-3 mb-5 cursor-pointer">
+      <input type="checkbox" id="aiEnabled" checked={enabled} class="w-5 h-5 accent-brand-blue" />
+      <span class="text-sm font-semibold">Suggest replies automatically</span>
+    </label>
+
+    <label class="text-xs font-bold uppercase tracking-wider text-brand-blue block mb-2">House rules</label>
+    <p class="text-xs opacity-55 mb-2">Hours, refund policy, pricing, anything the assistant should always know. Kept private.</p>
+    <textarea id="houseRules" rows="8" maxlength="4000"
+      class="w-full border-[1.5px] border-line rounded-xl px-3.5 py-3 text-sm focus:border-brand-blue focus:outline-none resize-y"
+      placeholder="e.g. Refunds for machine failures within 7 days. Open 6am–11pm daily. Detergent vending by the door.">{houseRules ?? ''}</textarea>
+
+    <div class="flex items-center gap-3 mt-3">
+      <button id="saveBtn" class="bg-brand-red text-white font-bold text-sm px-7 py-2.5 rounded-full disabled:opacity-50">Save</button>
+      <span id="saveStatus" class="text-sm opacity-60" aria-live="polite"></span>
+    </div>
+  </section>
+</AdminLayout>
+
+<script>
+  const enabledEl = document.getElementById('aiEnabled') as HTMLInputElement;
+  const rulesEl = document.getElementById('houseRules') as HTMLTextAreaElement;
+  const statusEl = document.getElementById('saveStatus')!;
+  let saving = false;
+  document.getElementById('saveBtn')!.addEventListener('click', async () => {
+    if (saving) return;
+    saving = true; statusEl.textContent = 'Saving…';
+    try {
+      const res = await fetch('/api/admin/settings/', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aiEnabled: enabledEl.checked, houseRules: rulesEl.value }),
+      });
+      statusEl.textContent = res.ok ? 'Saved ✓' : 'Failed — try again.';
+    } catch {
+      statusEl.textContent = 'Failed — try again.';
+    }
+    saving = false;
+  });
+</script>
