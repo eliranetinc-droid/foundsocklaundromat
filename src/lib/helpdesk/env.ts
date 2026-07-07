@@ -7,6 +7,7 @@ export interface HelpdeskEnv {
   NOTIFY_EMAIL: string;
   CF_ACCESS_TEAM_DOMAIN: string;
   CF_ACCESS_AUD: string;
+  ANTHROPIC_API_KEY?: string;
 }
 
 /** Cast the Cloudflare runtime env to our typed shape (same pattern the API routes already use). */
