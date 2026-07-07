@@ -291,3 +291,22 @@ export async function recentOutboundPairs(db: D1Database, limit = 60): Promise<{
   ).bind(limit).all<{ inbound: string | null; outbound: string }>();
   return results.filter((r): r is { inbound: string; outbound: string } => !!r.inbound);
 }
+
+// ---- push notifications ----
+export interface PushSubRow { endpoint: string; p256dh: string; auth: string; }
+
+export async function listPushSubscriptions(db: D1Database): Promise<PushSubRow[]> {
+  const { results } = await db.prepare(
+    `SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE disabled = 0`
+  ).all<PushSubRow>();
+  return results;
+}
+export const upsertPushSubscription = (db: D1Database, s: PushSubRow) =>
+  db.prepare(
+    `INSERT INTO push_subscriptions (endpoint, p256dh, auth, created_at, disabled) VALUES (?, ?, ?, ?, 0)
+     ON CONFLICT(endpoint) DO UPDATE SET p256dh = excluded.p256dh, auth = excluded.auth, disabled = 0`
+  ).bind(s.endpoint, s.p256dh, s.auth, now()).run();
+export const removePushSubscription = (db: D1Database, endpoint: string) =>
+  db.prepare(`DELETE FROM push_subscriptions WHERE endpoint = ?`).bind(endpoint).run();
+export const disablePushSubscription = (db: D1Database, endpoint: string) =>
+  db.prepare(`UPDATE push_subscriptions SET disabled = 1 WHERE endpoint = ?`).bind(endpoint).run();
