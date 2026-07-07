@@ -3,60 +3,141 @@ export const prerender = false;
 
 import AdminLayout from '../../components/admin/AdminLayout.astro';
 import { getHelpdeskEnv } from '../../lib/helpdesk/env';
-import { viewsByDay, topPages, topCountries, deviceSplit } from '../../lib/helpdesk/db';
+import { viewsByDay, topPages, topCountries, deviceSplit, referrers, hoursOfDay, viewsInRange } from '../../lib/helpdesk/db';
+import { etDay } from '../../lib/helpdesk/pv';
+
+const periodParam = Astro.url.searchParams.get('period');
+const period = periodParam === '7' || periodParam === '90' ? Number(periodParam) : 30;
 
 const env = await getHelpdeskEnv();
-const [views, pages, countries, devices] = await Promise.all([
-  viewsByDay(env.DB, 30), topPages(env.DB, 30), topCountries(env.DB, 30), deviceSplit(env.DB, 30),
+const [views, pages, countries, devices, refs, hours] = await Promise.all([
+  viewsByDay(env.DB, period), topPages(env.DB, period), topCountries(env.DB, period),
+  deviceSplit(env.DB, period), referrers(env.DB, period), hoursOfDay(env.DB, period),
 ]);
+
+const dayAgo = (n: number) => etDay(new Date(Date.now() - n * 86400000));
+const today = dayAgo(0);
+const curStart = dayAgo(period - 1);
+const prevStart = dayAgo(2 * period - 1);
+const prevEnd = dayAgo(period);
 const total = views.reduce((s, v) => s + v.views, 0);
-const maxDay = Math.max(1, ...views.map(v => v.views));
+const prevTotal = await viewsInRange(env.DB, prevStart, prevEnd);
+const dailyAvg = Math.round(total / period);
+const deltaPct = prevTotal === 0 ? (total === 0 ? 0 : 100) : Math.round(((total - prevTotal) / prevTotal) * 100);
+const busiest = views.reduce((m, v) => (v.views > (m?.views ?? -1) ? v : m), null as null | { day: string; views: number });
+
+// Gap-filled daily series for the big chart
+const nDays = period;
+const days: string[] = Array.from({ length: nDays }, (_, i) => dayAgo(nDays - 1 - i));
+const vmap = new Map(views.map(v => [v.day, v.views]));
+const series = days.map(d => vmap.get(d) ?? 0);
+const maxDay = Math.max(1, ...series);
+const W = 720, H = 180;
+const pts = series.map((v, i) => [nDays <= 1 ? 0 : (i / (nDays - 1)) * W, H - (v / maxDay) * (H - 10) - 5] as const);
+const linePath = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+const areaPath = `M0,${H} ${pts.map(p => `L${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')} L${W},${H} Z`;
+
 const maxPage = Math.max(1, ...pages.map(p => p.views));
 const devTotal = Math.max(1, devices.reduce((s, d) => s + d.views, 0));
+const hourArr = Array.from({ length: 24 }, (_, h) => hours.find(x => x.hour === h)?.views ?? 0);
+const maxHour = Math.max(1, ...hourArr);
+const periods = [7, 30, 90];
+const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`);
 ---
 <AdminLayout title="Analytics">
-  <h1 class="text-3xl font-bold tracking-tight mb-1">Analytics</h1>
-  <p class="text-sm opacity-60 mb-6">Last 30 days · {total} page views · first-party, cookie-free</p>
-
-  <h2 class="text-xs uppercase tracking-[0.2em] text-brand-blue font-bold mb-3">Views per day</h2>
-  <div class="bg-white rounded-2xl border border-line p-5 mb-8">
-    {views.length === 0 ? <p class="text-sm opacity-60">No data yet — check back after some traffic.</p> : (
-      <div class="flex items-end gap-[2px] h-32">
-        {views.map(v => (
-          <div class="flex-1 bg-brand-blue/80 rounded-t hover:bg-brand-red" style={`height:${Math.max(3, Math.round((v.views / maxDay) * 100))}%`} title={`${v.day}: ${v.views} views`}></div>
-        ))}
-      </div>
-    )}
+  <div class="flex items-center justify-between flex-wrap gap-3 mb-5">
+    <h1 class="text-2xl font-bold tracking-tight">Analytics</h1>
+    <div class="flex gap-1 bg-white border border-line rounded-full p-1 text-sm font-semibold">
+      {periods.map(p => (
+        <a href={`/admin/analytics/?period=${p}`}
+           class:list={['px-3.5 py-1 rounded-full', period === p ? 'bg-brand-blue text-white' : 'text-brand-blue-darker/60 hover:text-brand-blue-darker']}>
+          {p}d
+        </a>
+      ))}
+    </div>
   </div>
 
-  <div class="grid md:grid-cols-2 gap-6">
-    <div>
-      <h2 class="text-xs uppercase tracking-[0.2em] text-brand-blue font-bold mb-3">Top pages</h2>
-      <div class="bg-white rounded-2xl border border-line p-5 space-y-2.5">
-        {pages.length === 0 && <p class="text-sm opacity-60">No data yet.</p>}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <div class="bg-white rounded-2xl border border-line p-4 shadow-sm">
+      <p class="text-[11px] uppercase tracking-widest opacity-55 font-semibold">Total views</p>
+      <p class="text-3xl font-bold mt-1">{total}</p>
+      <span class:list={['text-[11px] font-bold px-1.5 py-0.5 rounded-full', deltaPct > 0 ? 'bg-emerald-50 text-emerald-700' : deltaPct < 0 ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500']}>
+        {deltaPct > 0 ? '▲' : deltaPct < 0 ? '▼' : '■'} {Math.abs(deltaPct)}% vs prev
+      </span>
+    </div>
+    <div class="bg-white rounded-2xl border border-line p-4 shadow-sm">
+      <p class="text-[11px] uppercase tracking-widest opacity-55 font-semibold">Daily avg</p>
+      <p class="text-3xl font-bold mt-1">{dailyAvg}</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-line p-4 shadow-sm">
+      <p class="text-[11px] uppercase tracking-widest opacity-55 font-semibold">Busiest day</p>
+      <p class="text-lg font-bold mt-2">{busiest ? busiest.day.slice(5) : '—'}</p>
+      <p class="text-xs opacity-55">{busiest ? `${busiest.views} views` : ''}</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-line p-4 shadow-sm">
+      <p class="text-[11px] uppercase tracking-widest opacity-55 font-semibold">Period</p>
+      <p class="text-3xl font-bold mt-1">{period}d</p>
+      <p class="text-xs opacity-55">cookie-free</p>
+    </div>
+  </div>
+
+  <section class="bg-white rounded-2xl border border-line shadow-sm p-5 mb-6">
+    <h2 class="text-sm font-bold mb-3">Views per day</h2>
+    {total === 0 ? <p class="text-sm opacity-50">No data yet.</p> : (
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" class="w-full" style={`height:${H}px`} aria-hidden="true">
+        <path d={areaPath} fill="#2f6f9f" fill-opacity="0.1" />
+        <path d={linePath} fill="none" stroke="#2f6f9f" stroke-width="2" vector-effect="non-scaling-stroke" />
+      </svg>
+    )}
+    <div class="flex justify-between text-[10px] opacity-45 mt-1"><span>{days[0]?.slice(5)}</span><span>{today.slice(5)}</span></div>
+  </section>
+
+  <div class="grid md:grid-cols-2 gap-4 mb-6">
+    <section class="bg-white rounded-2xl border border-line shadow-sm p-5">
+      <h2 class="text-sm font-bold mb-3">Top pages</h2>
+      {pages.length === 0 && <p class="text-sm opacity-50">No data yet.</p>}
+      <div class="space-y-2.5">
         {pages.map(p => (
           <div>
-            <div class="flex justify-between text-sm mb-0.5"><span class="truncate">{p.path}</span><span class="opacity-60 shrink-0 ml-3">{p.views}</span></div>
+            <div class="flex justify-between text-sm mb-0.5"><span class="truncate">{p.path}</span><span class="opacity-55 ml-2 shrink-0">{p.views}</span></div>
             <div class="h-1.5 bg-line rounded-full overflow-hidden"><div class="h-full bg-brand-blue rounded-full" style={`width:${Math.round((p.views / maxPage) * 100)}%`}></div></div>
           </div>
         ))}
       </div>
-    </div>
-    <div class="space-y-6">
-      <div>
-        <h2 class="text-xs uppercase tracking-[0.2em] text-brand-blue font-bold mb-3">Countries</h2>
-        <div class="bg-white rounded-2xl border border-line p-5 space-y-1.5 text-sm">
-          {countries.length === 0 && <p class="opacity-60">No data yet.</p>}
-          {countries.map(c => <div class="flex justify-between"><span>{c.country || '—'}</span><span class="opacity-60">{c.views}</span></div>)}
-        </div>
+    </section>
+    <section class="bg-white rounded-2xl border border-line shadow-sm p-5">
+      <h2 class="text-sm font-bold mb-3">Referrers</h2>
+      {refs.length === 0 && <p class="text-sm opacity-50">No data yet.</p>}
+      <div class="space-y-1.5 text-sm">
+        {refs.map(r => <div class="flex justify-between"><span class="truncate">{r.host}</span><span class="opacity-55 ml-2 shrink-0">{r.views}</span></div>)}
       </div>
-      <div>
-        <h2 class="text-xs uppercase tracking-[0.2em] text-brand-blue font-bold mb-3">Devices</h2>
-        <div class="bg-white rounded-2xl border border-line p-5 space-y-1.5 text-sm">
-          {devices.length === 0 && <p class="opacity-60">No data yet.</p>}
-          {devices.map(d => <div class="flex justify-between"><span class="capitalize">{d.device}</span><span class="opacity-60">{d.views} ({Math.round((d.views / devTotal) * 100)}%)</span></div>)}
-        </div>
-      </div>
-    </div>
+    </section>
   </div>
+
+  <div class="grid md:grid-cols-2 gap-4 mb-6">
+    <section class="bg-white rounded-2xl border border-line shadow-sm p-5">
+      <h2 class="text-sm font-bold mb-3">Countries</h2>
+      {countries.length === 0 && <p class="text-sm opacity-50">No data yet.</p>}
+      <div class="space-y-1.5 text-sm">
+        {countries.map(c => <div class="flex justify-between"><span>{c.country || '—'}</span><span class="opacity-55">{c.views}</span></div>)}
+      </div>
+    </section>
+    <section class="bg-white rounded-2xl border border-line shadow-sm p-5">
+      <h2 class="text-sm font-bold mb-3">Devices</h2>
+      {devices.length === 0 && <p class="text-sm opacity-50">No data yet.</p>}
+      <div class="space-y-1.5 text-sm">
+        {devices.map(d => <div class="flex justify-between"><span class="capitalize">{d.device}</span><span class="opacity-55">{d.views} ({Math.round((d.views / devTotal) * 100)}%)</span></div>)}
+      </div>
+    </section>
+  </div>
+
+  <section class="bg-white rounded-2xl border border-line shadow-sm p-5">
+    <h2 class="text-sm font-bold mb-3">Busiest hours <span class="font-normal opacity-45">(Eastern)</span></h2>
+    <div class="flex items-end gap-[3px] h-24">
+      {hourArr.map((v, h) => (
+        <div class="flex-1 bg-brand-blue/70 hover:bg-brand-red rounded-t" style={`height:${Math.max(2, Math.round((v / maxHour) * 100))}%`} title={`${label12(h)}: ${v}`}></div>
+      ))}
+    </div>
+    <div class="flex justify-between text-[10px] opacity-45 mt-1"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>11p</span></div>
+  </section>
 </AdminLayout>
