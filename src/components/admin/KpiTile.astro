@@ -1,10 +1,12 @@
 ---
 import Sparkline from './Sparkline.astro';
+import AdminIcon from './AdminIcon.astro';
 export interface Props {
   label: string; value: string | number; spark?: number[]; color?: string;
+  icon?: string;
   delta?: { current: number; prev: number; lowerIsBetter?: boolean } | null;
 }
-const { label, value, spark = [], color = '#2f6f9f', delta = null } = Astro.props;
+const { label, value, spark = [], color = '#2f6f9f', icon, delta = null } = Astro.props;
 let chip: { text: string; cls: string } | null = null;
 if (delta) {
   const { current, prev, lowerIsBetter } = delta;
@@ -19,8 +21,11 @@ if (delta) {
 ---
 <div class="bg-white rounded-2xl border border-line p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition">
   <div class="flex items-center justify-between gap-2">
-    <p class="text-[11px] uppercase tracking-widest opacity-55 font-semibold">{label}</p>
-    {chip && <span class={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${chip.cls}`}>{chip.text}</span>}
+    <div class="flex items-center gap-1.5 min-w-0">
+      {icon && <span class="text-brand-blue/60 shrink-0"><AdminIcon name={icon} class="w-3.5 h-3.5" /></span>}
+      <p class="text-[11px] uppercase tracking-wider opacity-55 font-semibold truncate">{label}</p>
+    </div>
+    {chip && <span class={`text-[11px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${chip.cls}`}>{chip.text}</span>}
   </div>
   <p class="text-3xl font-bold mt-1 mb-2">{value}</p>
   {spark.length > 0 && <Sparkline data={spark} color={color} />}

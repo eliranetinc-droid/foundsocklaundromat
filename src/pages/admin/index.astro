@@ -6,12 +6,12 @@ import KpiTile from '../../components/admin/KpiTile.astro';
 import { getHelpdeskEnv } from '../../lib/helpdesk/env';
 import {
   countOpenTickets, recentMessages, viewsByDay, topPages,
-  ticketsPerDay, medianFirstReplyHours, needsAttention,
+  ticketsPerDay, medianFirstReplyHours, needsAttention, countRecentViewers,
 } from '../../lib/helpdesk/db';
 import { etDay } from '../../lib/helpdesk/pv';
 
 const env = await getHelpdeskEnv();
-const [openCount, recent, views14, pages, tix14, medHrs, attention] = await Promise.all([
+const [openCount, recent, views14, pages, tix14, medHrs, attention, viewingNow] = await Promise.all([
   countOpenTickets(env.DB),
   recentMessages(env.DB, 8),
   viewsByDay(env.DB, 14),
@@ -19,6 +19,7 @@ const [openCount, recent, views14, pages, tix14, medHrs, attention] = await Prom
   ticketsPerDay(env.DB, 14),
   medianFirstReplyHours(env.DB, 30),
   needsAttention(env.DB),
+  countRecentViewers(env.DB, 5),
 ]);
 
 // Build gap-filled 14-day series (ET) for the sparklines. viewsByDay + ticketsPerDay
@@ -44,10 +45,10 @@ const age = (iso: string) => {
 ---
 <AdminLayout title="Dashboard">
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-    <KpiTile label="Visitors · 7d" value={views7} spark={viewsSeries} color="#2f6f9f" delta={{ current: views7, prev: viewsPrev7 }} />
-    <KpiTile label="Open tickets" value={openCount} spark={tixSeries} color="#16a34a" />
-    <KpiTile label="New tickets · 7d" value={tix7} spark={tixSeries} color="#16a34a" delta={{ current: tix7, prev: tixPrev7 }} />
-    <KpiTile label="Avg first reply" value={medHrs === null ? '—' : `${medHrs}h`} />
+    <KpiTile label="Visitors" value={views7} spark={viewsSeries} color="#2f6f9f" icon="eye" delta={{ current: views7, prev: viewsPrev7 }} />
+    <KpiTile label="Open" value={openCount} spark={tixSeries} color="#16a34a" icon="inbox" />
+    <KpiTile label="New · 7d" value={tix7} spark={tixSeries} color="#16a34a" icon="message" delta={{ current: tix7, prev: tixPrev7 }} />
+    <KpiTile label="Avg reply" value={medHrs === null ? '—' : `${medHrs}h`} icon="clock" />
   </div>
 
   <div class="grid lg:grid-cols-3 gap-4 mb-6">
@@ -73,7 +74,15 @@ const age = (iso: string) => {
     <!-- Traffic -->
     <section class="bg-white rounded-2xl border border-line shadow-sm">
       <div class="px-5 py-3.5 border-b border-line flex items-center justify-between">
-        <h2 class="text-sm font-bold">Traffic · 14d</h2>
+        <div class="flex items-center gap-2">
+          <h2 class="text-sm font-bold">Traffic · 14d</h2>
+          {viewingNow > 0 && (
+            <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
+              <span class="relative flex w-2 h-2"><span class="absolute inline-flex w-full h-full rounded-full bg-emerald-400 opacity-75 animate-ping"></span><span class="relative inline-flex w-2 h-2 rounded-full bg-emerald-500"></span></span>
+              {viewingNow} now
+            </span>
+          )}
+        </div>
         <a href="/admin/analytics/" class="text-xs font-medium text-brand-blue hover:text-brand-red">Analytics →</a>
       </div>
       <div class="p-5 space-y-3">
@@ -104,4 +113,15 @@ const age = (iso: string) => {
       ))}
     </div>
   </section>
+
+  <p class="text-[11px] opacity-40 mt-4 flex items-center gap-1.5">
+    <span class="relative flex w-1.5 h-1.5"><span class="absolute inline-flex w-full h-full rounded-full bg-emerald-400 opacity-75 animate-ping"></span><span class="relative inline-flex w-1.5 h-1.5 rounded-full bg-emerald-500"></span></span>
+    Live · refreshes every 30s
+  </p>
 </AdminLayout>
+
+<script is:inline>
+  // Gentle auto-refresh: only when the tab is visible, so a backgrounded admin
+  // doesn't reload endlessly. Read-only page — nothing to lose on reload.
+  setInterval(function () { if (document.visibilityState === 'visible') location.reload(); }, 30000);
+</script>

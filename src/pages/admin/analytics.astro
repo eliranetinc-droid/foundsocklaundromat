@@ -2,18 +2,21 @@
 export const prerender = false;
 
 import AdminLayout from '../../components/admin/AdminLayout.astro';
+import AdminIcon from '../../components/admin/AdminIcon.astro';
 import { getHelpdeskEnv } from '../../lib/helpdesk/env';
-import { viewsByDay, topPages, topCountries, deviceSplit, referrers, hoursOfDay, viewsInRange } from '../../lib/helpdesk/db';
+import { viewsByDay, topPages, topCountries, deviceSplit, referrers, hoursOfDay, viewsInRange, recentPageviews, countRecentViewers } from '../../lib/helpdesk/db';
 import { etDay } from '../../lib/helpdesk/pv';
 
 const periodParam = Astro.url.searchParams.get('period');
 const period = periodParam === '7' || periodParam === '90' ? Number(periodParam) : 30;
 
 const env = await getHelpdeskEnv();
-const [views, pages, countries, devices, refs, hours] = await Promise.all([
+const [views, pages, countries, devices, refs, hours, recent, viewingNow] = await Promise.all([
   viewsByDay(env.DB, period), topPages(env.DB, period), topCountries(env.DB, period),
   deviceSplit(env.DB, period), referrers(env.DB, period), hoursOfDay(env.DB, period),
+  recentPageviews(env.DB, 25), countRecentViewers(env.DB, 5),
 ]);
+const visitTime = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
 const dayAgo = (n: number) => etDay(new Date(Date.now() - n * 86400000));
 const today = dayAgo(0);
@@ -46,7 +49,15 @@ const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? 
 ---
 <AdminLayout title="Analytics">
   <div class="flex items-center justify-between flex-wrap gap-3 mb-5">
-    <h1 class="text-2xl font-bold tracking-tight">Analytics</h1>
+    <div class="flex items-center gap-3">
+      <h1 class="text-2xl font-bold tracking-tight">Analytics</h1>
+      {viewingNow > 0 && (
+        <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
+          <span class="relative flex w-2 h-2"><span class="absolute inline-flex w-full h-full rounded-full bg-emerald-400 opacity-75 animate-ping"></span><span class="relative inline-flex w-2 h-2 rounded-full bg-emerald-500"></span></span>
+          {viewingNow} viewing now
+        </span>
+      )}
+    </div>
     <div class="flex gap-1 bg-white border border-line rounded-full p-1 text-sm font-semibold">
       {periods.map(p => (
         <a href={`/admin/analytics/?period=${p}`}
@@ -59,24 +70,24 @@ const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? 
 
   <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
     <div class="bg-white rounded-2xl border border-line p-4 shadow-sm">
-      <p class="text-[11px] uppercase tracking-widest opacity-55 font-semibold">Total views</p>
-      <p class="text-3xl font-bold mt-1">{total}</p>
+      <div class="flex items-center gap-1.5 text-brand-blue/60 mb-1"><AdminIcon name="chart" class="w-3.5 h-3.5" /><p class="text-[11px] uppercase tracking-wider opacity-70 font-semibold text-brand-blue-darker">Total views</p></div>
+      <p class="text-3xl font-bold">{total}</p>
       <span class:list={['text-[11px] font-bold px-1.5 py-0.5 rounded-full', deltaPct > 0 ? 'bg-emerald-50 text-emerald-700' : deltaPct < 0 ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500']}>
         {deltaPct > 0 ? '▲' : deltaPct < 0 ? '▼' : '■'} {Math.abs(deltaPct)}% vs prev
       </span>
     </div>
     <div class="bg-white rounded-2xl border border-line p-4 shadow-sm">
-      <p class="text-[11px] uppercase tracking-widest opacity-55 font-semibold">Daily avg</p>
-      <p class="text-3xl font-bold mt-1">{dailyAvg}</p>
+      <div class="flex items-center gap-1.5 text-brand-blue/60 mb-1"><AdminIcon name="gauge" class="w-3.5 h-3.5" /><p class="text-[11px] uppercase tracking-wider opacity-70 font-semibold text-brand-blue-darker">Daily avg</p></div>
+      <p class="text-3xl font-bold">{dailyAvg}</p>
     </div>
     <div class="bg-white rounded-2xl border border-line p-4 shadow-sm">
-      <p class="text-[11px] uppercase tracking-widest opacity-55 font-semibold">Busiest day</p>
-      <p class="text-lg font-bold mt-2">{busiest ? busiest.day.slice(5) : '—'}</p>
+      <div class="flex items-center gap-1.5 text-brand-blue/60 mb-1"><AdminIcon name="calendar" class="w-3.5 h-3.5" /><p class="text-[11px] uppercase tracking-wider opacity-70 font-semibold text-brand-blue-darker">Busiest day</p></div>
+      <p class="text-lg font-bold mt-1">{busiest ? busiest.day.slice(5) : '—'}</p>
       <p class="text-xs opacity-55">{busiest ? `${busiest.views} views` : ''}</p>
     </div>
     <div class="bg-white rounded-2xl border border-line p-4 shadow-sm">
-      <p class="text-[11px] uppercase tracking-widest opacity-55 font-semibold">Period</p>
-      <p class="text-3xl font-bold mt-1">{period}d</p>
+      <div class="flex items-center gap-1.5 text-brand-blue/60 mb-1"><AdminIcon name="clock" class="w-3.5 h-3.5" /><p class="text-[11px] uppercase tracking-wider opacity-70 font-semibold text-brand-blue-darker">Period</p></div>
+      <p class="text-3xl font-bold">{period}d</p>
       <p class="text-xs opacity-55">cookie-free</p>
     </div>
   </div>
@@ -131,7 +142,7 @@ const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? 
     </section>
   </div>
 
-  <section class="bg-white rounded-2xl border border-line shadow-sm p-5">
+  <section class="bg-white rounded-2xl border border-line shadow-sm p-5 mb-6">
     <h2 class="text-sm font-bold mb-3">Busiest hours <span class="font-normal opacity-45">(Eastern)</span></h2>
     <div class="flex items-end gap-[3px] h-24">
       {hourArr.map((v, h) => (
@@ -140,4 +151,47 @@ const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? 
     </div>
     <div class="flex justify-between text-[10px] opacity-45 mt-1"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>11p</span></div>
   </section>
+
+  <!-- Recent visits (live) -->
+  <section class="bg-white rounded-2xl border border-line shadow-sm">
+    <div class="px-5 py-3.5 border-b border-line flex items-center justify-between">
+      <h2 class="text-sm font-bold">Recent visits</h2>
+      <span class="text-[11px] opacity-45 flex items-center gap-1.5">
+        <span class="relative flex w-1.5 h-1.5"><span class="absolute inline-flex w-full h-full rounded-full bg-emerald-400 opacity-75 animate-ping"></span><span class="relative inline-flex w-1.5 h-1.5 rounded-full bg-emerald-500"></span></span>
+        Live · refreshes every 30s
+      </span>
+    </div>
+    {recent.length === 0 ? <p class="px-5 py-8 text-sm text-center opacity-50">No visits yet.</p> : (
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-[10px] uppercase tracking-wider opacity-45 text-left">
+              <th class="font-semibold px-5 py-2">Time</th>
+              <th class="font-semibold px-3 py-2">Page</th>
+              <th class="font-semibold px-3 py-2">Referrer</th>
+              <th class="font-semibold px-3 py-2">Device</th>
+              <th class="font-semibold px-5 py-2 text-right">Country</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-line">
+            {recent.map(v => (
+              <tr class="hover:bg-cream/50">
+                <td class="px-5 py-2.5 whitespace-nowrap opacity-70">{visitTime(v.ts)}</td>
+                <td class="px-3 py-2.5 max-w-[220px] truncate" title={v.path}>{v.path}</td>
+                <td class="px-3 py-2.5 opacity-70 max-w-[140px] truncate">{v.referrer_host || 'direct'}</td>
+                <td class="px-3 py-2.5 capitalize opacity-70">{v.device || '—'}</td>
+                <td class="px-5 py-2.5 text-right opacity-70">{v.country || '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </section>
 </AdminLayout>
+
+<script is:inline>
+  // Gentle auto-refresh, only when the tab is visible. The period stays in the
+  // URL query, so a reload preserves the selected 7/30/90-day view.
+  setInterval(function () { if (document.visibilityState === 'visible') location.reload(); }, 30000);
+</script>

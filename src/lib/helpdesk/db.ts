@@ -160,6 +160,19 @@ export async function viewsInRange(db: D1Database, startDay: string, endDay: str
   ).bind(startDay, endDay).first<{ c: number }>();
   return r?.c ?? 0;
 }
+/** Most recent individual pageviews (for the live recent-visits table). */
+export async function recentPageviews(db: D1Database, limit = 20) {
+  const { results } = await db.prepare(
+    `SELECT ts, path, referrer_host, country, device FROM pageviews ORDER BY id DESC LIMIT ?`
+  ).bind(limit).all<{ ts: string; path: string; referrer_host: string | null; country: string | null; device: string | null }>();
+  return results;
+}
+/** Pageviews in the last N minutes — an approximate "viewing recently" count (cookie-free, no sessions). */
+export async function countRecentViewers(db: D1Database, minutes = 5): Promise<number> {
+  const since = new Date(Date.now() - minutes * 60000).toISOString();
+  const r = await db.prepare(`SELECT COUNT(*) AS c FROM pageviews WHERE ts >= ?`).bind(since).first<{ c: number }>();
+  return r?.c ?? 0;
+}
 export const countOpenTickets = async (db: D1Database) =>
   (await db.prepare(`SELECT COUNT(*) AS c FROM tickets WHERE status = 'open'`).first<{ c: number }>())?.c ?? 0;
 export const countUnreadTickets = async (db: D1Database) =>
