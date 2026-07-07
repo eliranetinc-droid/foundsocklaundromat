@@ -23,15 +23,17 @@ const isActive = (href: string) => path === href || (href !== '/admin/' && path.
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <!-- Installable app (Add to Home Screen): standalone admin with its own icon. -->
+    <!-- Installable app (Add to Home Screen): standalone admin with its own icon.
+         Status bar style must be 'default' — 'black-translucent' draws the page
+         under the iPhone clock/notch and buries the topbar (menu untappable). -->
     <link rel="manifest" href="/admin-manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/admin-apple-touch-icon.png" />
     <meta name="theme-color" content="#0F2A4A" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="FS Admin" />
     <title>{title} · Found Sock Admin</title>
   </head>
