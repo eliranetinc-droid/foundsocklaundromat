@@ -222,9 +222,16 @@ describe('medianFirstReplyHours', () => {
 });
 
 describe('ticketsPerDay', () => {
-  test('returns day/count rows', async () => {
-    const db = fakeDb([{ match: /GROUP BY day/, rows: [{ day: '2026-07-01', n: 2 }] }]);
-    expect(await ticketsPerDay(db, 14)).toEqual([{ day: '2026-07-01', n: 2 }]);
+  test('buckets created_at timestamps by ET day (not UTC)', async () => {
+    const db = fakeDb([{ match: /SELECT created_at FROM tickets/, rows: [
+      { created_at: '2026-07-01T15:00:00.000Z' },
+      { created_at: '2026-07-01T18:00:00.000Z' },
+      { created_at: '2026-07-07T02:30:00.000Z' }, // 10:30pm Jul 6 ET
+    ] }]);
+    expect(await ticketsPerDay(db, 14)).toEqual([
+      { day: '2026-07-01', n: 2 },
+      { day: '2026-07-06', n: 1 },
+    ]);
   });
 });
 
@@ -248,11 +255,23 @@ Expected: FAIL — `medianFirstReplyHours`/`ticketsPerDay`/`needsAttention` are 
 - [ ] **Step 3: Append to `src/lib/helpdesk/db.ts`** (after the existing `recentMessages` function, before EOF):
 
 ```ts
-export async function ticketsPerDay(db: D1Database, days: number) {
+import { etDay } from './pv';  // added to db.ts imports alongside the existing ones
+
+/**
+ * New tickets per ET calendar day. Bucketing is done in JS (not SQL) because
+ * created_at is stored UTC and SQLite has no timezone support — grouping by
+ * substr() would mis-bucket tickets created 8pm–midnight ET onto the next day.
+ */
+export async function ticketsPerDay(db: D1Database, days: number): Promise<{ day: string; n: number }[]> {
   const { results } = await db.prepare(
-    `SELECT substr(created_at,1,10) AS day, COUNT(*) AS n FROM tickets WHERE created_at >= ? GROUP BY day ORDER BY day ASC`
-  ).bind(new Date(Date.now() - days * 86400000).toISOString()).all<{ day: string; n: number }>();
-  return results;
+    `SELECT created_at FROM tickets WHERE created_at >= ?`
+  ).bind(new Date(Date.now() - days * 86400000).toISOString()).all<{ created_at: string }>();
+  const counts = new Map<string, number>();
+  for (const r of results) {
+    const day = etDay(new Date(r.created_at));
+    counts.set(day, (counts.get(day) ?? 0) + 1);
+  }
+  return [...counts.entries()].map(([day, n]) => ({ day, n })).sort((a, b) => a.day.localeCompare(b.day));
 }
 
 export async function medianFirstReplyHours(db: D1Database, days: number): Promise<number | null> {
@@ -376,6 +395,7 @@ import {
   countOpenTickets, recentMessages, viewsByDay, topPages,
   ticketsPerDay, medianFirstReplyHours, needsAttention,
 } from '../../lib/helpdesk/db';
+import { etDay } from '../../lib/helpdesk/pv';
 
 const env = await getHelpdeskEnv();
 const [openCount, recent, views14, pages, tix14, medHrs, attention] = await Promise.all([
@@ -388,9 +408,9 @@ const [openCount, recent, views14, pages, tix14, medHrs, attention] = await Prom
   needsAttention(env.DB),
 ]);
 
-// Build gap-filled 14-day series (ET) for the sparklines.
+// Build gap-filled 14-day series (ET) for the sparklines. viewsByDay + ticketsPerDay
+// both key on ET days (etDay), so these exact-match lookups align.
 const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-const etDay = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 const days: string[] = Array.from({ length: 14 }, (_, i) => etDay(new Date(Date.now() - (13 - i) * 86400000)));
 const seriesFrom = (rows: { day?: string }[], key: 'views' | 'n') => {
   const map = new Map(rows.map((r: any) => [r.day, r[key] as number]));
@@ -495,31 +515,53 @@ git commit -m "feat(admin): dense dashboard with KPI tiles, needs-attention, tra
 
 ---
 
-## Task 4: Analytics data + ET hour bucketing (TDD)
+## Task 4: Analytics-only queries (TDD)
+
+> **Note:** the ET-bucketing foundation (etDay/etDayHour in pv.ts + tests, insertPageview
+> storing ET day+hour, sinceDay in ET, the `hour` column in schema.sql + local ALTER) was
+> pulled forward and already shipped in commit `012c2ae` while fixing the V2-T2 UTC/ET seam.
+> This task now adds only the three analytics-specific queries.
 
 **Files:**
-- Modify: `src/lib/helpdesk/pv.ts` (add pure ET helper)
-- Test: `src/lib/helpdesk/pv.test.ts` (extend)
-- Modify: `src/lib/helpdesk/db.ts` (insertPageview + new queries)
-- Modify: `src/pages/api/pv.ts` (pass hour)
-- Modify: `db/schema.sql` (hour column)
+- Modify: `src/lib/helpdesk/db.ts` (referrers, hoursOfDay, viewsInRange)
+- Test: `src/lib/helpdesk/db.analytics.test.ts` (create)
 
-- [ ] **Step 1: Write the failing test** — append to `src/lib/helpdesk/pv.test.ts`:
+- [ ] **Step 1: Write the failing test** — create `src/lib/helpdesk/db.analytics.test.ts`:
 
 ```ts
-import { etDayHour } from './pv';
+import { test, expect, describe } from 'vitest';
+import { referrers, hoursOfDay, viewsInRange } from './db';
 
-describe('etDayHour', () => {
-  test('converts a UTC instant to America/New_York day + hour', () => {
-    // 2026-07-01T02:30:00Z is 2026-06-30 22:30 EDT → day 2026-06-30, hour 22
-    const r = etDayHour(new Date('2026-07-01T02:30:00.000Z'));
-    expect(r.day).toBe('2026-06-30');
-    expect(r.hour).toBe(22);
+function fakeDb(handlers: { match: RegExp; rows?: any[]; first?: any }[]) {
+  return {
+    prepare(sql: string) {
+      const h = handlers.find(x => x.match.test(sql));
+      return { bind() { return this; }, async all() { return { results: h?.rows ?? [] }; }, async first() { return h?.first ?? null; } };
+    },
+  } as any;
+}
+
+describe('referrers', () => {
+  test('returns host/views rows', async () => {
+    const db = fakeDb([{ match: /referrer_host/, rows: [{ host: 'google.com', views: 5 }, { host: '—', views: 3 }] }]);
+    const r = await referrers(db, 30);
+    expect(r).toEqual([{ host: 'google.com', views: 5 }, { host: '—', views: 3 }]);
   });
-  test('midday UTC stays same calendar day in ET', () => {
-    const r = etDayHour(new Date('2026-07-01T16:00:00.000Z')); // 12:00 EDT
-    expect(r.day).toBe('2026-07-01');
-    expect(r.hour).toBe(12);
+});
+
+describe('hoursOfDay', () => {
+  test('returns hour/views rows', async () => {
+    const db = fakeDb([{ match: /GROUP BY hour/, rows: [{ hour: 9, views: 4 }, { hour: 20, views: 7 }] }]);
+    expect(await hoursOfDay(db, 30)).toEqual([{ hour: 9, views: 4 }, { hour: 20, views: 7 }]);
+  });
+});
+
+describe('viewsInRange', () => {
+  test('returns the count', async () => {
+    expect(await viewsInRange(fakeDb([{ match: /COUNT\(\*\) AS c FROM pageviews/, first: { c: 42 } }]), '2026-06-01', '2026-06-30')).toBe(42);
+  });
+  test('returns 0 when null', async () => {
+    expect(await viewsInRange(fakeDb([{ match: /pageviews/, first: null }]), 'a', 'b')).toBe(0);
   });
 });
 ```
@@ -527,55 +569,11 @@ describe('etDayHour', () => {
 - [ ] **Step 2: Run to verify failure**
 
 ```bash
-npx vitest run src/lib/helpdesk/pv.test.ts
+npx vitest run src/lib/helpdesk/db.analytics.test.ts
 ```
-Expected: FAIL — `etDayHour` not exported.
+Expected: FAIL — functions not exported.
 
-- [ ] **Step 3: Append to `src/lib/helpdesk/pv.ts`:**
-
-```ts
-/** Calendar day (YYYY-MM-DD) and 0–23 hour of an instant, in America/New_York. */
-export function etDayHour(d: Date): { day: string; hour: number } {
-  const day = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
-  }).format(d);
-  const hour = Number(new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/New_York', hour: '2-digit', hour12: false,
-  }).format(d)) % 24; // '24' → 0 guard
-  return { day, hour };
-}
-```
-
-- [ ] **Step 4: Run to verify pass**
-
-```bash
-npx vitest run src/lib/helpdesk/pv.test.ts
-```
-Expected: PASS.
-
-- [ ] **Step 5: Update `insertPageview` in `src/lib/helpdesk/db.ts`** — replace the existing `insertPageview` and `sinceDay` block with:
-
-```ts
-import { etDayHour } from './pv';
-// (add the import at the top of db.ts alongside the existing imports)
-
-export const insertPageview = (db: D1Database, pv: { path: string; referrerHost: string; country: string; device: string }) => {
-  const d = new Date();
-  const { day, hour } = etDayHour(d);
-  return db.prepare(
-    `INSERT INTO pageviews (ts, day, hour, path, referrer_host, country, device) VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).bind(d.toISOString(), day, hour, pv.path, pv.referrerHost, pv.country, pv.device).run();
-};
-
-const sinceDay = (days: number) => {
-  const d = new Date(Date.now() - days * 86400000);
-  return etDayHour(d).day;
-};
-```
-
-(Keep the existing `viewsByDay`, `topPages`, `topCountries`, `deviceSplit` — they already use `sinceDay`.)
-
-- [ ] **Step 6: Append new analytics queries to `src/lib/helpdesk/db.ts`:**
+- [ ] **Step 3: Append to `src/lib/helpdesk/db.ts`** (after the existing `deviceSplit`, alongside the other analytics queries — `sinceDay` is already defined above them):
 
 ```ts
 export async function referrers(db: D1Database, days: number, limit = 8) {
@@ -600,47 +598,23 @@ export async function viewsInRange(db: D1Database, startDay: string, endDay: str
 }
 ```
 
-- [ ] **Step 7: Update `src/pages/api/pv.ts`** — no code change needed (it calls `insertPageview`, which now derives the hour internally). Verify by re-reading; leave as-is.
-
-- [ ] **Step 8: Update `db/schema.sql`** — replace the `pageviews` CREATE block with (adds `hour`):
-
-```sql
-CREATE TABLE IF NOT EXISTS pageviews (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  ts TEXT NOT NULL,
-  day TEXT NOT NULL,
-  hour INTEGER,
-  path TEXT NOT NULL,
-  referrer_host TEXT,
-  country TEXT,
-  device TEXT
-);
-CREATE INDEX IF NOT EXISTS idx_pageviews_day ON pageviews(day);
-```
-
-Add a migration note comment at the top of `db/schema.sql` (after the existing header comment):
-
-```sql
--- MIGRATION 2026-07 (analytics hour): existing databases need:
---   ALTER TABLE pageviews ADD COLUMN hour INTEGER;
-```
-
-- [ ] **Step 9: Apply the ALTER to LOCAL D1 so dev works:**
+- [ ] **Step 4: Verify pass + full suite + build**
 
 ```bash
-npx wrangler d1 execute foundsock-helpdesk --local --command "ALTER TABLE pageviews ADD COLUMN hour INTEGER;" 2>&1 | tail -2
+npx vitest run src/lib/helpdesk/db.analytics.test.ts
+npm test 2>&1 | grep "Tests "   # +~4 tests
+npm run build 2>&1 | tail -2
 ```
-(If it errors "duplicate column name", it's already applied — fine.)
 
-- [ ] **Step 10: Full suite + commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-npm test 2>&1 | grep "Tests "   # +2 tests
-git add src/lib/helpdesk/pv.ts src/lib/helpdesk/pv.test.ts src/lib/helpdesk/db.ts db/schema.sql
-git commit -m "feat(analytics): ET day/hour bucketing + referrers/hours/range queries"
+git add src/lib/helpdesk/db.ts src/lib/helpdesk/db.analytics.test.ts
+git commit -m "feat(analytics): referrers, hours-of-day, views-in-range queries"
 ```
 
 ---
+
 
 ## Task 5: Analytics page rewrite
 
@@ -656,6 +630,7 @@ export const prerender = false;
 import AdminLayout from '../../components/admin/AdminLayout.astro';
 import { getHelpdeskEnv } from '../../lib/helpdesk/env';
 import { viewsByDay, topPages, topCountries, deviceSplit, referrers, hoursOfDay, viewsInRange } from '../../lib/helpdesk/db';
+import { etDay } from '../../lib/helpdesk/pv';
 
 const periodParam = Astro.url.searchParams.get('period');
 const period = periodParam === '7' || periodParam === '90' ? Number(periodParam) : 30;
@@ -666,7 +641,6 @@ const [views, pages, countries, devices, refs, hours] = await Promise.all([
   deviceSplit(env.DB, period), referrers(env.DB, period), hoursOfDay(env.DB, period),
 ]);
 
-const etDay = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 const dayAgo = (n: number) => etDay(new Date(Date.now() - n * 86400000));
 const today = dayAgo(0);
 const curStart = dayAgo(period - 1);
