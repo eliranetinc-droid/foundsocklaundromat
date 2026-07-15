@@ -312,7 +312,7 @@ const isCustom = range.preset === 'custom';
     {RANGE_PRESETS.map(p => <option value={p.key} selected={range.preset === p.key}>{p.label}</option>)}
     <option value="custom" selected={isCustom}>Custom…</option>
   </select>
-  <span class:list={['items-center gap-2', isCustom ? 'flex' : 'hidden']} data-customfields>
+  <span class:list={['items-center gap-2 flex-wrap justify-end', isCustom ? 'flex' : 'hidden']} data-customfields>
     <input type="date" name="from" value={isCustom ? range.start : ''}
       class="text-sm bg-white border border-line rounded-full px-3 py-1.5 focus:border-brand-blue focus:outline-none" />
     <span class="text-sm opacity-50">→</span>
@@ -329,7 +329,11 @@ const isCustom = range.preset === 'custom';
     var fields = form.querySelector('[data-customfields]');
     sel.addEventListener('change', function () {
       if (sel.value === 'custom') { fields.classList.remove('hidden'); fields.classList.add('flex'); }
-      else { form.querySelectorAll('input[type=date]').forEach(function (i) { i.value = ''; }); form.submit(); }
+      else {
+        // Disabled inputs don't serialize — keeps preset URLs free of empty from=&to=.
+        form.querySelectorAll('input[type=date]').forEach(function (i) { i.value = ''; i.disabled = true; });
+        form.submit();
+      }
     });
   })();
 </script>
