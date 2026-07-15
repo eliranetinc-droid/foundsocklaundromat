@@ -21,6 +21,8 @@ describe('digestEmail', () => {
     expect(e.html).toContain('+20%');   // visitors up
     expect(e.html).toContain('Open in admin');
     expect(e.html).toContain('/admin/');
+    expect(e.html).toContain('5h 30m');
+    expect(e.text).toContain('5h 30m');
   });
   test('escapes machine names', () => {
     const e = digestEmail({ ...data, machines: [{ machine: '<img src=x>', n: 1 }] });

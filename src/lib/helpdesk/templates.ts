@@ -1,4 +1,5 @@
 import { SITE_URL } from './env';
+import { fmtDuration } from './fmt';
 
 export type TicketSource = 'issue-form' | 'contact-form' | 'email';
 
@@ -117,7 +118,7 @@ export function digestEmail(d: {
     `Visitors: ${d.visitors} (${pct(d.visitors, d.visitorsPrev)} vs prior week)`,
     `Tickets: ${d.tickets} (${pct(d.tickets, d.ticketsPrev)})`,
     `AI handled: ${d.aiHandled} of ${d.aiSuggested} suggested`,
-    `Median time to close: ${d.medianCloseHours === null ? '—' : d.medianCloseHours + 'h'}`,
+    `Median time to close: ${fmtDuration(d.medianCloseHours)}`,
     `Open right now: ${d.openNow}`,
     d.machines.length ? `Machine watch: ${d.machines.map(m => `${m.machine} (${m.n})`).join(', ')}` : 'Machine watch: all quiet',
     '', `Open in admin: ${SITE_URL}/admin/`,
@@ -129,7 +130,7 @@ export function digestEmail(d: {
     row('Visitors', `${d.visitors} (${pct(d.visitors, d.visitorsPrev)})`),
     row('Tickets', `${d.tickets} (${pct(d.tickets, d.ticketsPrev)})`),
     row('AI handled', `${d.aiHandled} of ${d.aiSuggested}`),
-    row('Median time to close', d.medianCloseHours === null ? '—' : `${d.medianCloseHours}h`),
+    row('Median time to close', fmtDuration(d.medianCloseHours)),
     row('Open right now', String(d.openNow)),
     `</table>`,
     d.machines.length

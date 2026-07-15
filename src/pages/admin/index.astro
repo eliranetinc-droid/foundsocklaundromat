@@ -10,6 +10,7 @@ import {
   ticketsByMachine, aiDraftStats, resolutionStats, sourceSplit, hoursOfDay, viewsInRange,
 } from '../../lib/helpdesk/db';
 import { etDay } from '../../lib/helpdesk/pv';
+import { fmtDuration } from '../../lib/helpdesk/fmt';
 
 const periodParam = Astro.url.searchParams.get('period');
 const period = periodParam === 'today' || periodParam === '30' ? periodParam : '7';
@@ -103,7 +104,7 @@ if (period === 'today') {
     <KpiTile label="Visitors" value={visitorsVal} spark={visitorsSpark} color="#2f6f9f" icon="eye" delta={{ current: visitorsVal, prev: visitorsPrev }} />
     <KpiTile label="Open" value={openCount} spark={ticketsSpark} color="#16a34a" icon="inbox" />
     <KpiTile label={`New · ${periodLabel}`} value={ticketsVal} spark={ticketsSpark} color="#16a34a" icon="message" delta={{ current: ticketsVal, prev: ticketsPrev }} />
-    <KpiTile label="Avg reply" value={medHrs === null ? '—' : `${medHrs}h`} icon="clock" />
+    <KpiTile label="Avg reply" value={fmtDuration(medHrs)} icon="clock" />
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
@@ -199,7 +200,7 @@ if (period === 'today') {
     <section class="bg-white rounded-2xl border border-line shadow-sm">
       <div class="px-5 py-3.5 border-b border-line"><h2 class="text-sm font-bold">Resolution <span class="font-normal opacity-45">90d</span></h2></div>
       <div class="p-5 space-y-2 text-sm">
-        <div class="flex justify-between"><span class="opacity-60">Median time to close</span><span class="font-bold">{res.medianCloseHours === null ? '—' : `${res.medianCloseHours}h`}</span></div>
+        <div class="flex justify-between"><span class="opacity-60">Median time to close</span><span class="font-bold">{fmtDuration(res.medianCloseHours)}</span></div>
         <div class="flex justify-between"><span class="opacity-60">Closed within 24h</span><span class="font-bold">{res.pctWithin24h === null ? '—' : `${res.pctWithin24h}%`}</span></div>
         <div class="flex justify-between"><span class="opacity-60">Tickets closed</span><span class="font-bold">{res.closedCount}</span></div>
         <div class="pt-2 border-t border-line space-y-1.5">
