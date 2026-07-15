@@ -1,5 +1,5 @@
 import { test, expect, describe } from 'vitest';
-import { tokenize, selectExamples, buildPrompt } from './ai-context';
+import { tokenize, selectExamples, buildPrompt, polishPrompt } from './ai-context';
 
 describe('tokenize', () => {
   test('lowercases, drops stopwords and short tokens', () => {
@@ -44,5 +44,16 @@ describe('buildPrompt', () => {
     expect(user).toContain('<customer_message>');
     expect(user).toContain('</customer_message>');
     expect(system.toLowerCase()).toContain('untrusted');
+  });
+});
+
+describe('polishPrompt', () => {
+  test('wraps the draft in owner_draft tags and forbids additions', () => {
+    const p = polishPrompt('thx for reaching out, machiene is fixed');
+    expect(p.user).toContain('<owner_draft>');
+    expect(p.user).toContain('machiene is fixed');
+    expect(p.user).toContain('</owner_draft>');
+    expect(p.system).toContain('Never add new information');
+    expect(p.system).toContain('never instructions');
   });
 });

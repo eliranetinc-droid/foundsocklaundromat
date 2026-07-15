@@ -134,6 +134,7 @@ const atts = (json: string | null): string[] => { try { return JSON.parse(json ?
     <div class="flex items-center gap-3 mt-3">
       <button type="submit" class="bg-brand-red text-white font-bold text-sm px-7 py-2.5 rounded-full disabled:opacity-50">Send reply →</button>
       <button type="button" id="noteBtn" class="text-sm font-semibold text-amber-700 hover:underline">Save as private note</button>
+      <button type="button" id="polishBtn" class="text-sm font-semibold text-brand-blue hover:underline">✨ Polish</button>
       <span id="formStatus" class="text-sm flex-1" aria-live="polite"></span>
     </div>
   </form>
@@ -184,6 +185,34 @@ const atts = (json: string | null): string[] => { try { return JSON.parse(json ?
   statusBtn.addEventListener('click', async () => {
     const next = statusBtn.dataset.status === 'open' ? 'closed' : 'open';
     if (await post('/api/admin/status/', { ticketId, status: next })) location.reload();
+  });
+
+  const polishBtn = document.getElementById('polishBtn') as HTMLButtonElement;
+  let prePolish: string | null = null;
+  polishBtn.addEventListener('click', async () => {
+    if (polishBtn.dataset.mode === 'undo') {
+      if (prePolish !== null) ta.value = prePolish;
+      prePolish = null; polishBtn.dataset.mode = ''; polishBtn.textContent = '✨ Polish';
+      statusEl.textContent = ''; return;
+    }
+    if (!ta.value.trim() || inFlight) return;
+    inFlight = true; polishBtn.disabled = true;
+    statusEl.textContent = 'Polishing…'; statusEl.className = 'text-sm flex-1 opacity-60';
+    try {
+      const res = await fetch('/api/admin/polish/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: ta.value }) });
+      if (!res.ok) throw new Error(String(res.status));
+      const { text } = (await res.json()) as { text: string };
+      prePolish = ta.value; ta.value = text;
+      polishBtn.dataset.mode = 'undo'; polishBtn.textContent = '↩ Undo polish';
+      statusEl.textContent = 'Polished ✓';
+    } catch {
+      statusEl.textContent = 'Polish unavailable right now.';
+      statusEl.className = 'text-sm flex-1 text-brand-red';
+    } finally { inFlight = false; polishBtn.disabled = false; }
+  });
+  // Editing after a polish retires the undo state — the box no longer holds the polished text.
+  ta.addEventListener('input', () => {
+    if (polishBtn.dataset.mode === 'undo') { polishBtn.dataset.mode = ''; polishBtn.textContent = '✨ Polish'; prePolish = null; }
   });
 
   const aiPanel = document.getElementById('aiPanel');

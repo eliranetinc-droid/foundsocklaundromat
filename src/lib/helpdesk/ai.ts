@@ -1,6 +1,6 @@
 import type { HelpdeskEnv } from './env';
 import { getSetting, recentOutboundPairs, getMessages, getTicket, supersedeDrafts, insertDraft } from './db';
-import { selectExamples, buildPrompt } from './ai-context';
+import { selectExamples, buildPrompt, polishPrompt } from './ai-context';
 
 export const AI_MODEL = 'claude-haiku-4-5-20251001';
 
@@ -61,4 +61,11 @@ export async function generateDraftForTicket(env: HelpdeskEnv, ticketId: string,
     console.error('[ai] draft generation failed:', e);
     return null;
   }
+}
+
+/** Polish owner-typed text. Returns the polished text, or null on any failure. */
+export async function polishText(env: Pick<HelpdeskEnv, 'ANTHROPIC_API_KEY'>, text: string): Promise<string | null> {
+  const t = text.trim();
+  if (!t) return null;
+  return draftReply(env, polishPrompt(t));
 }
