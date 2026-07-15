@@ -3,56 +3,42 @@ export const prerender = false;
 
 import AdminLayout from '../../components/admin/AdminLayout.astro';
 import AdminIcon from '../../components/admin/AdminIcon.astro';
+import RangePicker from '../../components/admin/RangePicker.astro';
 import { getHelpdeskEnv } from '../../lib/helpdesk/env';
-import { viewsByDay, topPages, topCountries, deviceSplit, referrers, hoursOfDay, viewsInRange, recentPageviews, countRecentViewers, getTimezone, viewsByChannel, entryPages, issueFunnel } from '../../lib/helpdesk/db';
-import { etDay } from '../../lib/helpdesk/pv';
+import { viewsByDayRange, topPagesRange, topCountriesRange, deviceSplitRange, referrersRange, hoursOfDayRange, viewsInRange, recentPageviews, countRecentViewers, getTimezone, viewsByChannelRange, entryPagesRange, issueFunnelRange } from '../../lib/helpdesk/db';
+import { resolveFromParams, shiftDay } from '../../lib/helpdesk/ranges';
 
-const periodParam = Astro.url.searchParams.get('period');
-const period = periodParam === '7' || periodParam === '90' ? Number(periodParam) : 30;
+const range = resolveFromParams(Astro.url.searchParams);
 
 const env = await getHelpdeskEnv();
-const [views2x, pages, countries, devices, refs, hours, recent, viewingNow, tz, channels, entries, funnel] = await Promise.all([
-  viewsByDay(env.DB, 2 * period), topPages(env.DB, period), topCountries(env.DB, period),
-  deviceSplit(env.DB, period), referrers(env.DB, period), hoursOfDay(env.DB, period),
+const [views, prevViews, prevTotal, pages, countries, devices, refs, hours, recent, viewingNow, tz, channels, entries, funnel] = await Promise.all([
+  viewsByDayRange(env.DB, range.start, range.end), viewsByDayRange(env.DB, range.prevStart, range.prevEnd), viewsInRange(env.DB, range.prevStart, range.prevEnd),
+  topPagesRange(env.DB, range.start, range.end), topCountriesRange(env.DB, range.start, range.end),
+  deviceSplitRange(env.DB, range.start, range.end), referrersRange(env.DB, range.start, range.end), hoursOfDayRange(env.DB, range.start, range.end),
   recentPageviews(env.DB, 25), countRecentViewers(env.DB, 5), getTimezone(env.DB),
-  viewsByChannel(env.DB, period), entryPages(env.DB, period), issueFunnel(env.DB, period),
+  viewsByChannelRange(env.DB, range.start, range.end), entryPagesRange(env.DB, range.start, range.end), issueFunnelRange(env.DB, range.start, range.end),
 ]);
 const visitTime = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: tz, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
-const dayAgo = (n: number) => etDay(new Date(Date.now() - n * 86400000));
-const today = dayAgo(0);
-const curStart = dayAgo(period - 1);
-const prevStart = dayAgo(2 * period - 1);
-const prevEnd = dayAgo(period);
-// views2x spans 2*period days (prevStart..today); split into the current window
-// (curStart..today) and the previous window (prevStart..prevEnd) — the two are
-// adjacent and non-overlapping, each exactly `period` days long.
-const views = views2x.filter(v => v.day >= curStart);
-const prevViews = views2x.filter(v => v.day <= prevEnd);
 const total = views.reduce((s, v) => s + v.views, 0);
-const prevTotal = await viewsInRange(env.DB, prevStart, prevEnd);
-const dailyAvg = Math.round(total / period);
+const dailyAvg = Math.round(total / range.days);
 const deltaPct = prevTotal === 0 ? (total === 0 ? 0 : 100) : Math.round(((total - prevTotal) / prevTotal) * 100);
 const busiest = views.reduce((m, v) => (v.views > (m?.views ?? -1) ? v : m), null as null | { day: string; views: number });
 
 // Gap-filled daily series for the big chart (current period)
-const nDays = period;
-const days: string[] = Array.from({ length: nDays }, (_, i) => dayAgo(nDays - 1 - i));
+const days: string[] = Array.from({ length: range.days }, (_, i) => shiftDay(range.start, i));
 const vmap = new Map(views.map(v => [v.day, v.views]));
 const series = days.map(d => vmap.get(d) ?? 0);
 
 // Gap-filled daily series for the ghost line (previous period, same length,
 // aligned day-for-day so index i in both series is "i days into the window").
-const prevDays: string[] = Array.from({ length: nDays }, (_, i) => {
-  const daysAgo = 2 * nDays - 1 - i;
-  return dayAgo(daysAgo);
-});
+const prevDays: string[] = Array.from({ length: range.days }, (_, i) => shiftDay(range.prevStart, i));
 const prevVmap = new Map(prevViews.map(v => [v.day, v.views]));
 const prevSeries = prevDays.map(d => prevVmap.get(d) ?? 0);
 
 const maxDay = Math.max(1, ...series, ...prevSeries);
 const W = 720, H = 180;
-const toPts = (s: number[]) => s.map((v, i) => [nDays <= 1 ? 0 : (i / (nDays - 1)) * W, H - (v / maxDay) * (H - 10) - 5] as const);
+const toPts = (s: number[]) => s.map((v, i) => [range.days <= 1 ? 0 : (i / (range.days - 1)) * W, H - (v / maxDay) * (H - 10) - 5] as const);
 const pts = toPts(series);
 const prevPts = toPts(prevSeries);
 const linePath = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
@@ -78,7 +64,6 @@ const maxChannel = Math.max(1, ...channels.map(c => c.views));
 const channelTotal = Math.max(1, channels.reduce((s, c) => s + c.views, 0));
 const maxEntry = Math.max(1, ...entries.map(e => e.n));
 
-const periods = [7, 30, 90];
 const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`);
 ---
 <AdminLayout title="Analytics">
@@ -92,14 +77,7 @@ const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? 
         </span>
       )}
     </div>
-    <div class="flex gap-1 bg-white border border-line rounded-full p-1 text-sm font-semibold">
-      {periods.map(p => (
-        <a href={`/admin/analytics/?period=${p}`}
-           class:list={['px-3.5 py-1 rounded-full', period === p ? 'bg-brand-blue text-white' : 'text-brand-blue-darker/60 hover:text-brand-blue-darker']}>
-          {p}d
-        </a>
-      ))}
-    </div>
+    <RangePicker range={range} action="/admin/analytics/" />
   </div>
 
   <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -121,25 +99,40 @@ const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? 
     </div>
     <div class="bg-white rounded-2xl border border-line p-4 shadow-sm">
       <div class="flex items-center gap-1.5 text-brand-blue/60 mb-1"><AdminIcon name="clock" class="w-3.5 h-3.5" /><p class="text-[11px] uppercase tracking-wider opacity-70 font-semibold text-brand-blue-darker">Period</p></div>
-      <p class="text-3xl font-bold">{period}d</p>
+      <p class="text-3xl font-bold">{range.label}</p>
       <p class="text-xs opacity-55">cookie-free</p>
     </div>
   </div>
 
   <section class="bg-white rounded-2xl border border-line shadow-sm p-5 mb-6">
     <h2 class="text-sm font-bold mb-3">Views per day</h2>
-    {total === 0 ? <p class="text-sm opacity-50">No data yet.</p> : (
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" class="w-full" style={`height:${H}px`} aria-hidden="true">
-        <path d={areaPath} fill="#2f6f9f" fill-opacity="0.1" />
-        <path d={prevLinePath} fill="none" stroke="#9ca3af" stroke-dasharray="4 3" stroke-width="1.5" vector-effect="non-scaling-stroke" />
-        <path d={linePath} fill="none" stroke="#2f6f9f" stroke-width="2" vector-effect="non-scaling-stroke" />
-      </svg>
+    {range.single ? (
+      <>
+        {total === 0 ? <p class="text-sm opacity-50">No data yet.</p> : (
+          <div class="flex items-end gap-[3px] h-24">
+            {hourArr.map((v, h) => (
+              <div class="flex-1 bg-brand-blue/70 hover:bg-brand-red rounded-t" style={`height:${Math.max(2, Math.round((v / maxHour) * 100))}%`} title={`${label12(h)}: ${v}`}></div>
+            ))}
+          </div>
+        )}
+        <div class="flex justify-between text-[10px] opacity-45 mt-1"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>11p</span></div>
+      </>
+    ) : (
+      <>
+        {total === 0 ? <p class="text-sm opacity-50">No data yet.</p> : (
+          <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" class="w-full" style={`height:${H}px`} aria-hidden="true">
+            <path d={areaPath} fill="#2f6f9f" fill-opacity="0.1" />
+            <path d={prevLinePath} fill="none" stroke="#9ca3af" stroke-dasharray="4 3" stroke-width="1.5" vector-effect="non-scaling-stroke" />
+            <path d={linePath} fill="none" stroke="#2f6f9f" stroke-width="2" vector-effect="non-scaling-stroke" />
+          </svg>
+        )}
+        <div class="flex justify-between text-[10px] opacity-45 mt-1"><span>{range.start.slice(5)}</span><span>{range.end.slice(5)}</span></div>
+        <div class="flex items-center gap-4 mt-3 text-[11px] opacity-60">
+          <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-0.5 bg-brand-blue"></span>This period</span>
+          <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-0.5" style="background-image:repeating-linear-gradient(to right,#9ca3af 0 4px,transparent 4px 7px)"></span>Previous period</span>
+        </div>
+      </>
     )}
-    <div class="flex justify-between text-[10px] opacity-45 mt-1"><span>{days[0]?.slice(5)}</span><span>{today.slice(5)}</span></div>
-    <div class="flex items-center gap-4 mt-3 text-[11px] opacity-60">
-      <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-0.5 bg-brand-blue"></span>This period</span>
-      <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-0.5" style="background-image:repeating-linear-gradient(to right,#9ca3af 0 4px,transparent 4px 7px)"></span>Previous period</span>
-    </div>
   </section>
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -278,6 +271,6 @@ const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? 
 
 <script is:inline>
   // Gentle auto-refresh, only when the tab is visible. The period stays in the
-  // URL query, so a reload preserves the selected 7/30/90-day view.
+  // URL query, so a reload preserves the selected range.
   setInterval(function () { if (document.visibilityState === 'visible') location.reload(); }, 30000);
 </script>
