@@ -9,6 +9,21 @@ function escapeHtml(s: string): string {
 }
 const br = (s: string) => escapeHtml(s).replace(/\n/g, '<br>');
 
+/** Escape + newline-break + wrap bare URLs in styled anchors. Escapes every
+ * non-URL segment itself, so callers pass RAW text (never pre-escaped).
+ * `extraAttrs` is controller-supplied constant markup, e.g. ' target="_blank"'. */
+export function linkify(s: string, linkStyle = 'color:#2f6f9f', extraAttrs = ''): string {
+  return s.split(/(https?:\/\/[^\s<>"']+)/g).map((part, i) => {
+    if (i % 2 === 0) return br(part);
+    // Trailing punctuation reads as prose, not URL: keep it outside the link.
+    const m = part.match(/[.,;:!?)\]]+$/);
+    const url = m ? part.slice(0, -m[0].length) : part;
+    const tail = m ? m[0] : '';
+    if (!url) return br(part);
+    return `<a href="${escapeHtml(url)}"${extraAttrs} style="${linkStyle}">${escapeHtml(url)}</a>${br(tail)}`;
+  }).join('');
+}
+
 /** 600px branded shell. `inner` is trusted HTML (already escaped by caller). */
 function shell(heading: string, inner: string, publicId: string): string {
   return [
@@ -82,7 +97,7 @@ export function replyEmail(r: { subject: string; publicId: string; body: string 
   if (!subject.includes(`[${r.publicId}]`)) subject = `${subject} [${r.publicId}]`;
   if (!/^re:/i.test(subject)) subject = `Re: ${subject}`;
   const text = [r.body.trim(), '', '—', 'The Found Sock Laundromat', ADDRESS, 'foundsocklaundromat.com', `Ref: [${r.publicId}]`].join('\n');
-  const inner = `<p style="margin:0;font-size:15px;color:#333;line-height:1.6">${br(r.body.trim())}</p>`;
+  const inner = `<p style="margin:0;font-size:15px;color:#333;line-height:1.6">${linkify(r.body.trim())}</p>`;
   return { subject, text, html: shell('', inner, r.publicId) };
 }
 

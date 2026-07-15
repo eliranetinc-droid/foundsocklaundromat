@@ -5,6 +5,7 @@ import AdminLayout from '../../../components/admin/AdminLayout.astro';
 import { getHelpdeskEnv } from '../../../lib/helpdesk/env';
 import { getTicket, getMessages, markRead, getTimezone, ticketsByEmail } from '../../../lib/helpdesk/db';
 import { latestSuggestedDraft } from '../../../lib/helpdesk/db';
+import { linkify } from '../../../lib/helpdesk/templates';
 
 const id = Astro.params.id ?? '';
 const env = await getHelpdeskEnv();
@@ -99,7 +100,9 @@ const atts = (json: string | null): string[] => { try { return JSON.parse(json ?
           <span class:list={['text-[10px] uppercase tracking-wider font-bold block mb-1', m.direction === 'inbound' ? 'text-brand-blue' : 'text-white/70']}>
             {m.direction === 'inbound' ? ticket.customer_name : 'You'} · {fmt(m.created_at)}
           </span>
-          <p class="text-sm whitespace-pre-wrap">{m.body}</p>
+          {m.direction === 'outbound'
+            ? <p class="text-sm whitespace-pre-wrap" set:html={linkify(m.body, 'color:inherit;text-decoration:underline', ' target="_blank" rel="noopener"')} />
+            : <p class="text-sm whitespace-pre-wrap">{m.body}</p>}
           {atts(m.attachments).map(k => (
             <a href={`/api/admin/photo/${k}/`} target="_blank">
               <img src={`/api/admin/photo/${k}/`} alt="Attachment" class="mt-2 max-h-48 rounded-lg border border-line bg-white" loading="lazy" />
