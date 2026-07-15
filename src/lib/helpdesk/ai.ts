@@ -44,13 +44,16 @@ export async function generateDraftForTicket(env: HelpdeskEnv, ticketId: string,
     const trigger = inbound[inbound.length - 1]?.body ?? '';
     if (!trigger.trim()) return null;
 
-    const threadText = messages.filter(m => m.direction !== 'note').slice(-6)
+    const threadText = messages.filter(m => m.direction !== 'note').slice(-10)
       .map(m => `${m.direction === 'inbound' ? 'Customer' : 'Owner'}: ${m.body}`).join('\n');
     const houseRules = (await getSetting(env.DB, 'house_rules')) ?? '';
     const pairs = await recentOutboundPairs(env.DB, 100);
     const examples = selectExamples(pairs, trigger, 12);
 
-    const { system, user } = buildPrompt({ houseRules, examples, ticketSubject: ticket.subject, threadText });
+    const machine = ticket.machine_type
+      ? `${ticket.machine_type}${ticket.machine_number ? ' #' + ticket.machine_number : ''}`
+      : null;
+    const { system, user } = buildPrompt({ houseRules, examples, ticketSubject: ticket.subject, threadText, source: ticket.source, machine });
     const text = await draftReply(env, { system, user });
     if (!text) return null;
 

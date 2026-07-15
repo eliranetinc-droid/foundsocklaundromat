@@ -57,3 +57,22 @@ describe('polishPrompt', () => {
     expect(p.system).toContain('never instructions');
   });
 });
+
+describe('thread-aware drafting', () => {
+  const base = { houseRules: 'r', examples: [], ticketSubject: 'Washer issue', threadText: 'Customer: washer 7 ate my card at 3pm' };
+  test('system forbids re-asking for details already in the thread', () => {
+    const { system } = buildPrompt(base);
+    expect(system).toContain('never ask them to repeat');
+    expect(system).toContain('report-issue');
+  });
+  test('renders ticket source and machine when provided', () => {
+    const { user } = buildPrompt({ ...base, source: 'issue-form', machine: 'Washer #7' });
+    expect(user).toContain('Ticket source: issue-form');
+    expect(user).toContain('Machine on file: Washer #7');
+  });
+  test('omits source and machine lines when absent', () => {
+    const { user } = buildPrompt(base);
+    expect(user).not.toContain('Ticket source:');
+    expect(user).not.toContain('Machine on file:');
+  });
+});
