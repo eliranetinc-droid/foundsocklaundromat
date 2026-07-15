@@ -116,44 +116,66 @@ export const insertPageview = (db: D1Database, pv: { path: string; referrerHost:
 // with the dashboard/analytics `days` arrays (which start at dayAgo(N-1)).
 const sinceDay = (days: number) => etDay(new Date(Date.now() - (days - 1) * 86400000));
 
-export async function viewsByDay(db: D1Database, days: number) {
+/** Range-bounded variants below take explicit ET day-string bounds (the shape
+ * `viewsInRange` already used); the old N-day forms are thin wrappers over them
+ * — `sinceDay(days)` for the start, today for the end. Wrapping is only safe
+ * when the original had no JS-side post-filtering of its own (see ticketsPerDay
+ * / issueFunnel further down for the two that couldn't be wrapped). */
+export async function viewsByDayRange(db: D1Database, startDay: string, endDay: string) {
   const { results } = await db.prepare(
-    `SELECT day, COUNT(*) AS views FROM pageviews WHERE day >= ? GROUP BY day ORDER BY day ASC`
-  ).bind(sinceDay(days)).all<{ day: string; views: number }>();
+    `SELECT day, COUNT(*) AS views FROM pageviews WHERE day >= ? AND day <= ? GROUP BY day ORDER BY day ASC`
+  ).bind(startDay, endDay).all<{ day: string; views: number }>();
   return results;
 }
-export async function topPages(db: D1Database, days: number, limit = 10) {
+export const viewsByDay = (db: D1Database, days: number) =>
+  viewsByDayRange(db, sinceDay(days), etDay(new Date()));
+
+export async function topPagesRange(db: D1Database, startDay: string, endDay: string, limit = 10) {
   const { results } = await db.prepare(
-    `SELECT path, COUNT(*) AS views FROM pageviews WHERE day >= ? GROUP BY path ORDER BY views DESC LIMIT ?`
-  ).bind(sinceDay(days), limit).all<{ path: string; views: number }>();
+    `SELECT path, COUNT(*) AS views FROM pageviews WHERE day >= ? AND day <= ? GROUP BY path ORDER BY views DESC LIMIT ?`
+  ).bind(startDay, endDay, limit).all<{ path: string; views: number }>();
   return results;
 }
-export async function topCountries(db: D1Database, days: number, limit = 8) {
+export const topPages = (db: D1Database, days: number, limit = 10) =>
+  topPagesRange(db, sinceDay(days), etDay(new Date()), limit);
+
+export async function topCountriesRange(db: D1Database, startDay: string, endDay: string, limit = 8) {
   const { results } = await db.prepare(
-    `SELECT COALESCE(country,'?') AS country, COUNT(*) AS views FROM pageviews WHERE day >= ?
+    `SELECT COALESCE(country,'?') AS country, COUNT(*) AS views FROM pageviews WHERE day >= ? AND day <= ?
      GROUP BY country ORDER BY views DESC LIMIT ?`
-  ).bind(sinceDay(days), limit).all<{ country: string; views: number }>();
+  ).bind(startDay, endDay, limit).all<{ country: string; views: number }>();
   return results;
 }
-export async function deviceSplit(db: D1Database, days: number) {
+export const topCountries = (db: D1Database, days: number, limit = 8) =>
+  topCountriesRange(db, sinceDay(days), etDay(new Date()), limit);
+
+export async function deviceSplitRange(db: D1Database, startDay: string, endDay: string) {
   const { results } = await db.prepare(
-    `SELECT COALESCE(device,'?') AS device, COUNT(*) AS views FROM pageviews WHERE day >= ? GROUP BY device`
-  ).bind(sinceDay(days)).all<{ device: string; views: number }>();
+    `SELECT COALESCE(device,'?') AS device, COUNT(*) AS views FROM pageviews WHERE day >= ? AND day <= ? GROUP BY device`
+  ).bind(startDay, endDay).all<{ device: string; views: number }>();
   return results;
 }
-export async function referrers(db: D1Database, days: number, limit = 8) {
+export const deviceSplit = (db: D1Database, days: number) =>
+  deviceSplitRange(db, sinceDay(days), etDay(new Date()));
+
+export async function referrersRange(db: D1Database, startDay: string, endDay: string, limit = 8) {
   const { results } = await db.prepare(
-    `SELECT COALESCE(NULLIF(referrer_host,''),'—') AS host, COUNT(*) AS views FROM pageviews WHERE day >= ?
+    `SELECT COALESCE(NULLIF(referrer_host,''),'—') AS host, COUNT(*) AS views FROM pageviews WHERE day >= ? AND day <= ?
      GROUP BY host ORDER BY views DESC LIMIT ?`
-  ).bind(sinceDay(days), limit).all<{ host: string; views: number }>();
+  ).bind(startDay, endDay, limit).all<{ host: string; views: number }>();
   return results;
 }
-export async function hoursOfDay(db: D1Database, days: number) {
+export const referrers = (db: D1Database, days: number, limit = 8) =>
+  referrersRange(db, sinceDay(days), etDay(new Date()), limit);
+
+export async function hoursOfDayRange(db: D1Database, startDay: string, endDay: string) {
   const { results } = await db.prepare(
-    `SELECT hour, COUNT(*) AS views FROM pageviews WHERE day >= ? AND hour IS NOT NULL GROUP BY hour`
-  ).bind(sinceDay(days)).all<{ hour: number; views: number }>();
+    `SELECT hour, COUNT(*) AS views FROM pageviews WHERE day >= ? AND day <= ? AND hour IS NOT NULL GROUP BY hour`
+  ).bind(startDay, endDay).all<{ hour: number; views: number }>();
   return results;
 }
+export const hoursOfDay = (db: D1Database, days: number) =>
+  hoursOfDayRange(db, sinceDay(days), etDay(new Date()));
 /** Total pageviews between two ET day strings, inclusive. */
 export async function viewsInRange(db: D1Database, startDay: string, endDay: string): Promise<number> {
   const r = await db.prepare(
@@ -192,6 +214,14 @@ export async function recentMessages(db: D1Database, limit = 8) {
  * New tickets per ET calendar day. Bucketing is done in JS (not SQL) because
  * created_at is stored UTC and SQLite has no timezone support — grouping by
  * substr() would mis-bucket tickets created 8pm–midnight ET onto the next day.
+ *
+ * NOT a thin wrapper over ticketsPerDayRange: this fetches on a rolling
+ * `days * 86400000`ms cutoff from the current instant (no upper bound, no
+ * ET-day alignment on the start), whereas the Range variant is bounded to
+ * whole ET calendar days on both ends. The two windows agree on "how many
+ * days" but not on which clock instants they cover, so wrapping would shift
+ * results at the boundary — keeping this body standalone preserves exact
+ * pre-existing behavior (and the pinned db.dashboard.test.ts fixture).
  */
 export async function ticketsPerDay(db: D1Database, days: number): Promise<{ day: string; n: number }[]> {
   const { results } = await db.prepare(
@@ -201,6 +231,27 @@ export async function ticketsPerDay(db: D1Database, days: number): Promise<{ day
   for (const r of results) {
     const day = etDay(new Date(r.created_at));
     counts.set(day, (counts.get(day) ?? 0) + 1);
+  }
+  return [...counts.entries()].map(([day, n]) => ({ day, n })).sort((a, b) => a.day.localeCompare(b.day));
+}
+
+/**
+ * New tickets per ET calendar day within [startDay, endDay] inclusive.
+ * created_at is UTC and ET can fall a calendar day either side of it (e.g.
+ * 2026-07-06T02:30:00Z is 10:30pm Jul 5 ET), so this fetches a ±1-day UTC
+ * guard band around the window and buckets + filters precisely in JS —
+ * same reasoning as ticketsPerDay, just with both ends pinned.
+ */
+export async function ticketsPerDayRange(db: D1Database, startDay: string, endDay: string): Promise<{ day: string; n: number }[]> {
+  const guardStart = new Date(startDay + 'T00:00:00.000Z').getTime() - 86400000;
+  const guardEnd = new Date(endDay + 'T00:00:00.000Z').getTime() + 2 * 86400000;
+  const { results } = await db.prepare(
+    `SELECT created_at FROM tickets WHERE created_at >= ? AND created_at < ?`
+  ).bind(new Date(guardStart).toISOString(), new Date(guardEnd).toISOString()).all<{ created_at: string }>();
+  const counts = new Map<string, number>();
+  for (const r of results) {
+    const day = etDay(new Date(r.created_at));
+    if (day >= startDay && day <= endDay) counts.set(day, (counts.get(day) ?? 0) + 1);
   }
   return [...counts.entries()].map(([day, n]) => ({ day, n })).sort((a, b) => a.day.localeCompare(b.day));
 }
@@ -367,10 +418,10 @@ export const disablePushSubscription = (db: D1Database, endpoint: string) =>
   db.prepare(`UPDATE push_subscriptions SET disabled = 1 WHERE endpoint = ?`).bind(endpoint).run();
 
 // ---- traffic intelligence (cookie-free) ----
-export async function viewsByChannel(db: D1Database, days: number) {
+export async function viewsByChannelRange(db: D1Database, startDay: string, endDay: string) {
   const { results } = await db.prepare(
-    `SELECT COALESCE(referrer_host,'') AS host, COUNT(*) AS n FROM pageviews WHERE day >= ? GROUP BY referrer_host`
-  ).bind(sinceDay(days)).all<{ host: string; n: number }>();
+    `SELECT COALESCE(referrer_host,'') AS host, COUNT(*) AS n FROM pageviews WHERE day >= ? AND day <= ? GROUP BY referrer_host`
+  ).bind(startDay, endDay).all<{ host: string; n: number }>();
   const agg = new Map<string, number>();
   for (const r of results) {
     const c = channelOf(r.host);
@@ -379,17 +430,31 @@ export async function viewsByChannel(db: D1Database, days: number) {
   const order = ['Direct', 'Search', 'Social', 'Referral'];
   return order.filter(c => agg.has(c)).map(c => ({ channel: c, views: agg.get(c)! }));
 }
+export const viewsByChannel = (db: D1Database, days: number) =>
+  viewsByChannelRange(db, sinceDay(days), etDay(new Date()));
 
 /** Arrivals from external sites, by page (cookie-free cousin of "landing pages"). */
-export async function entryPages(db: D1Database, days: number, limit = 8) {
+export async function entryPagesRange(db: D1Database, startDay: string, endDay: string, limit = 8) {
   const { results } = await db.prepare(
-    `SELECT path, COUNT(*) AS n FROM pageviews WHERE day >= ? AND referrer_host != '' AND referrer_host IS NOT NULL
+    `SELECT path, COUNT(*) AS n FROM pageviews WHERE day >= ? AND day <= ? AND referrer_host != '' AND referrer_host IS NOT NULL
      GROUP BY path ORDER BY n DESC LIMIT ?`
-  ).bind(sinceDay(days), limit).all<{ path: string; n: number }>();
+  ).bind(startDay, endDay, limit).all<{ path: string; n: number }>();
   return results;
 }
+export const entryPages = (db: D1Database, days: number, limit = 8) =>
+  entryPagesRange(db, sinceDay(days), etDay(new Date()), limit);
 
-/** Report-issue funnel: page views vs tickets created via the form. */
+/**
+ * Report-issue funnel: page views vs tickets created via the form.
+ *
+ * NOT a thin wrapper over issueFunnelRange: the ticket half here counts via a
+ * single SQL COUNT(*) against a rolling ms cutoff (`days * 86400000` back from
+ * now, no ET-day alignment), while the Range variant below fetches rows and
+ * buckets them by ET day in JS (needed so both bounds can be pinned exactly).
+ * Same boundary mismatch as ticketsPerDay vs ticketsPerDayRange — wrapping
+ * would silently change which tickets count at the edges, so this keeps its
+ * original body (and the pinned db.traffic.test.ts fixture) untouched.
+ */
 export async function issueFunnel(db: D1Database, days: number): Promise<{ views: number; tickets: number; rate: number | null }> {
   const views = (await db.prepare(
     `SELECT COUNT(*) AS c FROM pageviews WHERE day >= ? AND path = '/report-issue/'`
@@ -398,5 +463,27 @@ export async function issueFunnel(db: D1Database, days: number): Promise<{ views
   const tickets = (await db.prepare(
     `SELECT COUNT(*) AS c FROM tickets WHERE created_at >= ? AND source = 'issue-form'`
   ).bind(since).first<{ c: number }>())?.c ?? 0;
+  return { views, tickets, rate: views > 0 ? Math.round((tickets / views) * 100) : null };
+}
+
+/**
+ * Report-issue funnel over [startDay, endDay]. Pageviews are SQL-bounded by ET
+ * day like the other Range variants; tickets have no day column so they're
+ * fetched with the same ±1-day UTC guard band as ticketsPerDayRange and
+ * filtered to the exact ET-day window in JS.
+ */
+export async function issueFunnelRange(db: D1Database, startDay: string, endDay: string): Promise<{ views: number; tickets: number; rate: number | null }> {
+  const views = (await db.prepare(
+    `SELECT COUNT(*) AS c FROM pageviews WHERE day >= ? AND day <= ? AND path = '/report-issue/'`
+  ).bind(startDay, endDay).first<{ c: number }>())?.c ?? 0;
+  const guardStart = new Date(startDay + 'T00:00:00.000Z').getTime() - 86400000;
+  const guardEnd = new Date(endDay + 'T00:00:00.000Z').getTime() + 2 * 86400000;
+  const { results } = await db.prepare(
+    `SELECT created_at FROM tickets WHERE created_at >= ? AND created_at < ? AND source = 'issue-form'`
+  ).bind(new Date(guardStart).toISOString(), new Date(guardEnd).toISOString()).all<{ created_at: string }>();
+  const tickets = results.filter(r => {
+    const d = etDay(new Date(r.created_at));
+    return d >= startDay && d <= endDay;
+  }).length;
   return { views, tickets, rate: views > 0 ? Math.round((tickets / views) * 100) : null };
 }
