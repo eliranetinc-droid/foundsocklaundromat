@@ -180,7 +180,7 @@ export function resolveFromParams(params: URLSearchParams, today = etDay(new Dat
 }
 ```
 
-- [ ] **Step 4: Gates** — `npx vitest run src/lib/helpdesk/ranges.test.ts` PASSES (11 tests); `npm test` → 24 files / 130 tests / 0 failures; `npm run build` clean; `npx astro check` stays at the 14-error pre-existing baseline.
+- [ ] **Step 4: Gates** — `npx vitest run src/lib/helpdesk/ranges.test.ts` PASSES (12 tests); `npm test` → 24 files / 131 tests / 0 failures; `npm run build` clean; `npx astro check` stays at the 14-error pre-existing baseline.
 
 - [ ] **Step 5: Commit**
 
@@ -383,5 +383,5 @@ git commit -m "feat(analytics): time-range selector — presets, custom, single-
 - Coverage: selector on BOTH pages (Q4/Q5) with presets incl. custom (Q1) and full data plumbing (Q2); durations humanized at all three display sites (Q3); owner conventions (Sunday weeks, last-month, custom) locked in header.
 - Types: `DateRange` defined Q1, consumed Q4/Q5; Range query signatures defined Q2, consumed Q4/Q5; `fmtDuration(hours: number | null)` matches `medHrs`/`medianCloseHours` nullability.
 - Legacy URLs (`?period=7/30/90/today`) keep working via the resolver map — old bookmarks and the admin PWA cold-start URL never 404 or blank.
-- Test math: 119 + 11 (Q1) + ~8 (Q2) + 7 (Q3, plus digest pins) ≈ 145+; exact counts reported per task, reviewers verify consistency.
+- Test math: 119 + 12 (Q1) + ~8 (Q2) + 7 (Q3, plus digest pins) ≈ 145+; exact counts reported per task, reviewers verify consistency.
 - Deliberately unchanged: fixed-window ops cards (Machine watch 90d / AI 30d / Resolution 90d); recent-visits table; ET bucketing convention.
