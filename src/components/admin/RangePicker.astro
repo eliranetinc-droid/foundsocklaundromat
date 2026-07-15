@@ -1,0 +1,36 @@
+---
+import { RANGE_PRESETS, type DateRange } from '../../lib/helpdesk/ranges';
+
+export interface Props { range: DateRange; action: string; }
+const { range, action } = Astro.props;
+const isCustom = range.preset === 'custom';
+---
+<!-- GET form: the chosen range lives in the URL, so refresh/bookmark/PWA keep it.
+     Preset changes submit immediately; Custom reveals date inputs + Apply. -->
+<form method="get" action={action} class="flex items-center gap-2 flex-wrap" data-rangepicker>
+  <select name="period"
+    class="text-sm font-semibold bg-white border border-line rounded-full px-4 py-2 pr-8 cursor-pointer focus:border-brand-blue focus:outline-none">
+    {RANGE_PRESETS.map(p => <option value={p.key} selected={range.preset === p.key}>{p.label}</option>)}
+    <option value="custom" selected={isCustom}>Custom…</option>
+  </select>
+  <span class:list={['items-center gap-2', isCustom ? 'flex' : 'hidden']} data-customfields>
+    <input type="date" name="from" value={isCustom ? range.start : ''}
+      class="text-sm bg-white border border-line rounded-full px-3 py-1.5 focus:border-brand-blue focus:outline-none" />
+    <span class="text-sm opacity-50">→</span>
+    <input type="date" name="to" value={isCustom ? range.end : ''}
+      class="text-sm bg-white border border-line rounded-full px-3 py-1.5 focus:border-brand-blue focus:outline-none" />
+    <button type="submit" class="text-sm font-bold px-4 py-1.5 rounded-full bg-brand-blue text-white">Apply</button>
+  </span>
+</form>
+<script is:inline>
+  (function () {
+    var form = document.querySelector('[data-rangepicker]');
+    if (!form) return;
+    var sel = form.querySelector('select[name=period]');
+    var fields = form.querySelector('[data-customfields]');
+    sel.addEventListener('change', function () {
+      if (sel.value === 'custom') { fields.classList.remove('hidden'); fields.classList.add('flex'); }
+      else { form.querySelectorAll('input[type=date]').forEach(function (i) { i.value = ''; }); form.submit(); }
+    });
+  })();
+</script>

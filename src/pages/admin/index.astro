@@ -3,24 +3,26 @@ export const prerender = false;
 
 import AdminLayout from '../../components/admin/AdminLayout.astro';
 import KpiTile from '../../components/admin/KpiTile.astro';
+import RangePicker from '../../components/admin/RangePicker.astro';
 import { getHelpdeskEnv } from '../../lib/helpdesk/env';
 import {
-  countOpenTickets, recentMessages, viewsByDay, topPages,
-  ticketsPerDay, medianFirstReplyHours, needsAttention, countRecentViewers, getTimezone,
-  ticketsByMachine, aiDraftStats, resolutionStats, sourceSplit, hoursOfDay, viewsInRange,
+  countOpenTickets, recentMessages, topPagesRange,
+  ticketsPerDayRange, medianFirstReplyHours, needsAttention, countRecentViewers, getTimezone,
+  ticketsByMachine, aiDraftStats, resolutionStats, sourceSplit, hoursOfDayRange, viewsInRange, viewsByDayRange,
 } from '../../lib/helpdesk/db';
-import { etDay } from '../../lib/helpdesk/pv';
 import { fmtDuration } from '../../lib/helpdesk/fmt';
+import { resolveFromParams, shiftDay } from '../../lib/helpdesk/ranges';
 
-const periodParam = Astro.url.searchParams.get('period');
-const period = periodParam === 'today' || periodParam === '30' ? periodParam : '7';
-const winDays = period === 'today' ? 1 : Number(period);
+const range = resolveFromParams(Astro.url.searchParams);
 
 const env = await getHelpdeskEnv();
-const [openCount, recent, pages, medHrs, attention, viewingNow, tz, machines, ai, res, sources] = await Promise.all([
+const [
+  openCount, recent, pages, medHrs, attention, viewingNow, tz, machines, ai, res, sources,
+  visitorsVal, visitorsPrev, ticketsCurRows, ticketsPrevRows, sparkRows,
+] = await Promise.all([
   countOpenTickets(env.DB),
   recentMessages(env.DB, 8),
-  topPages(env.DB, winDays, 5),
+  topPagesRange(env.DB, range.start, range.end, 5),
   medianFirstReplyHours(env.DB, 30),
   needsAttention(env.DB),
   countRecentViewers(env.DB, 5),
@@ -29,10 +31,14 @@ const [openCount, recent, pages, medHrs, attention, viewingNow, tz, machines, ai
   aiDraftStats(env.DB, 30),
   resolutionStats(env.DB, 90),
   sourceSplit(env.DB, 30),
+  viewsInRange(env.DB, range.start, range.end),
+  viewsInRange(env.DB, range.prevStart, range.prevEnd),
+  ticketsPerDayRange(env.DB, range.start, range.end),
+  ticketsPerDayRange(env.DB, range.prevStart, range.prevEnd),
+  range.single ? hoursOfDayRange(env.DB, range.start, range.end) : viewsByDayRange(env.DB, range.start, range.end),
 ]);
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: tz, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-const dayAgo = (n: number) => etDay(new Date(Date.now() - n * 86400000));
 const maxPage = Math.max(1, ...pages.map(p => p.views));
 
 const age = (iso: string) => {
@@ -40,70 +46,40 @@ const age = (iso: string) => {
   return h < 1 ? `${Math.max(1, Math.round(h * 60))}m` : h < 48 ? `${Math.round(h)}h` : `${Math.round(h / 24)}d`;
 };
 
-// ---- KPI plumbing, generalized by period ----
-let visitorsVal: number, visitorsPrev: number, visitorsSpark: number[];
-let ticketsVal: number, ticketsPrev: number, ticketsSpark: number[];
-let periodLabel: string;
-let hourArr: number[] = [];
+// ---- KPI plumbing, driven by the resolved range ----
 const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`);
 
-if (period === 'today') {
-  periodLabel = 'Today';
-  const today = dayAgo(0);
-  const yesterday = dayAgo(1);
-  const [hours, todayViews, yesterdayViews, tix2] = await Promise.all([
-    hoursOfDay(env.DB, 1),
-    viewsInRange(env.DB, today, today),
-    viewsInRange(env.DB, yesterday, yesterday),
-    ticketsPerDay(env.DB, 2),
-  ]);
-  hourArr = Array.from({ length: 24 }, (_, h) => hours.find(x => x.hour === h)?.views ?? 0);
-  visitorsVal = todayViews;
-  visitorsPrev = yesterdayViews;
-  visitorsSpark = hourArr;
+// Tickets: gap-fill both windows to range.days entries (ticketsPerDayRange
+// only returns days that had rows).
+const curDays = Array.from({ length: range.days }, (_, i) => shiftDay(range.start, i));
+const prevDays = Array.from({ length: range.days }, (_, i) => shiftDay(range.prevStart, i));
+const ticketsMap = new Map(ticketsCurRows.map(r => [r.day, r.n]));
+const ticketsPrevMap = new Map(ticketsPrevRows.map(r => [r.day, r.n]));
+let ticketsSpark = curDays.map(d => ticketsMap.get(d) ?? 0);
+const ticketsPrevSpark = prevDays.map(d => ticketsPrevMap.get(d) ?? 0);
+const ticketsVal = ticketsSpark.reduce((a, b) => a + b, 0);
+const ticketsPrev = ticketsPrevSpark.reduce((a, b) => a + b, 0);
 
-  // Tickets: bucket today's/yesterday's tickets from the 2-day fetch (ET days).
-  const tmap = new Map(tix2.map(r => [r.day, r.n]));
-  ticketsVal = tmap.get(today) ?? 0;
-  ticketsPrev = tmap.get(yesterday) ?? 0;
+let hourArr: number[] = [];
+let visitorsSpark: number[];
+if (range.single) {
+  hourArr = Array.from({ length: 24 }, (_, h) => (sparkRows as { hour: number; views: number }[]).find(x => x.hour === h)?.views ?? 0);
+  visitorsSpark = hourArr;
   ticketsSpark = hourArr; // no hourly ticket series available; reuse traffic shape for visual continuity
 } else {
-  periodLabel = `${winDays}d`;
-  const [views2x, tix2x] = await Promise.all([
-    viewsByDay(env.DB, 2 * winDays),
-    ticketsPerDay(env.DB, 2 * winDays),
-  ]);
-  const etDays: string[] = Array.from({ length: 2 * winDays }, (_, i) => dayAgo(2 * winDays - 1 - i));
-  const seriesFrom = (rows: { day?: string }[], key: 'views' | 'n') => {
-    const map = new Map(rows.map((r: any) => [r.day, r[key] as number]));
-    return etDays.map(d => map.get(d) ?? 0);
-  };
-  const viewsSeriesFull = seriesFrom(views2x as any, 'views');
-  const tixSeriesFull = seriesFrom(tix2x as any, 'n');
-  visitorsSpark = viewsSeriesFull.slice(winDays);
-  ticketsSpark = tixSeriesFull.slice(winDays);
-  visitorsVal = visitorsSpark.reduce((a, b) => a + b, 0);
-  visitorsPrev = viewsSeriesFull.slice(0, winDays).reduce((a, b) => a + b, 0);
-  ticketsVal = ticketsSpark.reduce((a, b) => a + b, 0);
-  ticketsPrev = tixSeriesFull.slice(0, winDays).reduce((a, b) => a + b, 0);
+  const viewsMap = new Map((sparkRows as { day: string; views: number }[]).map(r => [r.day, r.views]));
+  visitorsSpark = curDays.map(d => viewsMap.get(d) ?? 0);
 }
 ---
 <AdminLayout title="Dashboard">
   <div class="flex items-center justify-end mb-3">
-    <div class="flex gap-1 bg-white border border-line rounded-full p-1 text-sm font-semibold">
-      {[{ key: 'today', label: 'Today' }, { key: '7', label: '7d' }, { key: '30', label: '30d' }].map(p => (
-        <a href={`/admin/?period=${p.key}`}
-           class:list={['px-3.5 py-1 rounded-full', period === p.key ? 'bg-brand-blue text-white' : 'text-brand-blue-darker/60 hover:text-brand-blue-darker']}>
-          {p.label}
-        </a>
-      ))}
-    </div>
+    <RangePicker range={range} action="/admin/" />
   </div>
 
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
     <KpiTile label="Visitors" value={visitorsVal} spark={visitorsSpark} color="#2f6f9f" icon="eye" delta={{ current: visitorsVal, prev: visitorsPrev }} />
     <KpiTile label="Open" value={openCount} spark={ticketsSpark} color="#16a34a" icon="inbox" />
-    <KpiTile label={`New · ${periodLabel}`} value={ticketsVal} spark={ticketsSpark} color="#16a34a" icon="message" delta={{ current: ticketsVal, prev: ticketsPrev }} />
+    <KpiTile label={`New · ${range.label}`} value={ticketsVal} spark={ticketsSpark} color="#16a34a" icon="message" delta={{ current: ticketsVal, prev: ticketsPrev }} />
     <KpiTile label="Avg reply" value={fmtDuration(medHrs)} icon="clock" />
   </div>
 
@@ -131,7 +107,7 @@ if (period === 'today') {
     <section class="bg-white rounded-2xl border border-line shadow-sm">
       <div class="px-5 py-3.5 border-b border-line flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <h2 class="text-sm font-bold">Traffic · {periodLabel}</h2>
+          <h2 class="text-sm font-bold">Traffic · {range.label}</h2>
           {viewingNow > 0 && (
             <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
               <span class="relative flex w-2 h-2"><span class="absolute inline-flex w-full h-full rounded-full bg-emerald-400 opacity-75 animate-ping"></span><span class="relative inline-flex w-2 h-2 rounded-full bg-emerald-500"></span></span>
@@ -141,7 +117,7 @@ if (period === 'today') {
         </div>
         <a href="/admin/analytics/" class="text-xs font-medium text-brand-blue hover:text-brand-red">Analytics →</a>
       </div>
-      {period === 'today' ? (
+      {range.single ? (
         <div class="p-5">
           <div class="flex items-end gap-[3px] h-24">
             {hourArr.map((v, h) => (
