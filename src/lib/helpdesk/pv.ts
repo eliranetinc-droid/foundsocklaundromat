@@ -53,3 +53,14 @@ export function channelOf(referrerHost: string | null): 'Direct' | 'Search' | 'S
   if (SOCIAL_HOSTS.test(h)) return 'Social';
   return 'Referral';
 }
+
+/** Campaign label from a landing URL's query string: ?src= wins, then
+ * utm_campaign, then utm_source. Sanitized to a lowercase [a-z0-9 _-] slug
+ * (max 40 chars) so arbitrary URL junk can't reach the admin. Null when absent. */
+export function campaignFrom(search: string): string | null {
+  let params: URLSearchParams;
+  try { params = new URLSearchParams(search); } catch { return null; }
+  const raw = params.get('src') || params.get('utm_campaign') || params.get('utm_source') || '';
+  const slug = raw.toLowerCase().replace(/[^a-z0-9 _-]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 40).trim();
+  return slug || null;
+}

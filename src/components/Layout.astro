@@ -36,7 +36,7 @@ export interface Props {
       if (!location.pathname.startsWith('/admin')) {
         addEventListener('load', function () {
           try {
-            navigator.sendBeacon('/api/pv/', JSON.stringify({ p: location.pathname, r: document.referrer }));
+            navigator.sendBeacon('/api/pv/', JSON.stringify({ p: location.pathname, r: document.referrer, s: location.search }));
           } catch (e) {}
         });
       }

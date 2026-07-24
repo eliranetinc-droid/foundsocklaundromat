@@ -103,12 +103,12 @@ export const touchActivity = (db: D1Database, id: string, unread: 0 | 1) =>
 // ---- analytics ----
 // Days/hours are bucketed in America/New_York (the laundromat's zone) so the
 // admin charts line up with the owner's clock. `sinceDay` is likewise ET.
-export const insertPageview = (db: D1Database, pv: { path: string; referrerHost: string; country: string; device: string }) => {
+export const insertPageview = (db: D1Database, pv: { path: string; referrerHost: string; country: string; device: string; campaign: string | null }) => {
   const d = new Date();
   const { day, hour } = etDayHour(d);
   return db.prepare(
-    `INSERT INTO pageviews (ts, day, hour, path, referrer_host, country, device) VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).bind(d.toISOString(), day, hour, pv.path, pv.referrerHost, pv.country, pv.device).run();
+    `INSERT INTO pageviews (ts, day, hour, path, referrer_host, country, device, campaign) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(d.toISOString(), day, hour, pv.path, pv.referrerHost, pv.country, pv.device, pv.campaign).run();
 };
 
 // First ET day of a "last N days" window: N-1 days back so the inclusive

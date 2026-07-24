@@ -1,5 +1,5 @@
 import { test, expect, describe } from 'vitest';
-import { isBotUA, classifyDevice, referrerHost, isValidPath, etDay, etDayHour, channelOf } from './pv';
+import { isBotUA, classifyDevice, referrerHost, isValidPath, etDay, etDayHour, channelOf, campaignFrom } from './pv';
 
 describe('isBotUA', () => {
   test('flags bots and empty UA', () => {
@@ -71,5 +71,23 @@ describe('channelOf', () => {
     expect(channelOf('t.co')).toBe('Social');
     expect(channelOf('www.reddit.com')).toBe('Social');
     expect(channelOf('somelocalblog.com')).toBe('Referral');
+  });
+});
+
+describe('campaignFrom', () => {
+  test('src wins, then utm_campaign, then utm_source', () => {
+    expect(campaignFrom('?src=qr-sign&utm_campaign=x&utm_source=y')).toBe('qr-sign');
+    expect(campaignFrom('?utm_campaign=spring-promo&utm_source=ig')).toBe('spring-promo');
+    expect(campaignFrom('?utm_source=google-business')).toBe('google-business');
+  });
+  test('absent/empty/junk-only → null', () => {
+    expect(campaignFrom('')).toBe(null);
+    expect(campaignFrom('?foo=bar')).toBe(null);
+    expect(campaignFrom('?src=%3Cscript%3E')).toBe('script');
+    expect(campaignFrom('?src=!!!')).toBe(null);
+  });
+  test('sanitizes to lowercase slug, max 40 chars', () => {
+    expect(campaignFrom('?src=QR Sign #2')).toBe('qr sign 2');
+    expect(campaignFrom('?src=' + 'a'.repeat(60))).toBe('a'.repeat(40));
   });
 });

@@ -3,7 +3,7 @@ export const prerender = false;
 import type { APIRoute } from 'astro';
 import { getHelpdeskEnv } from '../../lib/helpdesk/env';
 import { insertPageview } from '../../lib/helpdesk/db';
-import { isBotUA, classifyDevice, referrerHost, isValidPath } from '../../lib/helpdesk/pv';
+import { isBotUA, classifyDevice, referrerHost, isValidPath, campaignFrom } from '../../lib/helpdesk/pv';
 
 const NO_CONTENT = () => new Response(null, { status: 204 });
 
@@ -18,7 +18,7 @@ export const POST: APIRoute = async ({ request }) => {
     const ua = request.headers.get('user-agent');
     if (isBotUA(ua)) return NO_CONTENT();
 
-    let data: { p?: unknown; r?: unknown };
+    let data: { p?: unknown; r?: unknown; s?: unknown };
     try {
       data = JSON.parse(await request.text());
     } catch {
@@ -36,6 +36,7 @@ export const POST: APIRoute = async ({ request }) => {
       referrerHost: referrerHost(typeof data.r === 'string' ? data.r : '', selfHost),
       country,
       device: classifyDevice(ua),
+      campaign: campaignFrom(typeof data.s === 'string' ? data.s : ''),
     });
     return NO_CONTENT();
   } catch {

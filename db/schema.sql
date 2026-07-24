@@ -40,6 +40,8 @@ CREATE INDEX IF NOT EXISTS idx_messages_ticket ON messages(ticket_id, created_at
 -- day + hour are bucketed in America/New_York at insert time (see db.ts).
 -- MIGRATION 2026-07 (analytics hour): existing databases need
 --   ALTER TABLE pageviews ADD COLUMN hour INTEGER;
+-- MIGRATION 2026-07 (analytics campaign): existing databases need
+--   ALTER TABLE pageviews ADD COLUMN campaign TEXT;
 CREATE TABLE IF NOT EXISTS pageviews (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   ts TEXT NOT NULL,
@@ -48,7 +50,8 @@ CREATE TABLE IF NOT EXISTS pageviews (
   path TEXT NOT NULL,
   referrer_host TEXT,
   country TEXT,
-  device TEXT
+  device TEXT,
+  campaign TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_pageviews_day ON pageviews(day);
 
