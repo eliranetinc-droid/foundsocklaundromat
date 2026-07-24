@@ -48,3 +48,6 @@ public/photos/gmb-source/
 # Drop folder for new owner-supplied photos before processing
 photo-inbox/
 _archive/
+
+# Print-shop assets (QR codes, sign artwork) — deliverables, not site code
+print/
