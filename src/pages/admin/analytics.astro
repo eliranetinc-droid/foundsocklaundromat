@@ -5,25 +5,41 @@ import AdminLayout from '../../components/admin/AdminLayout.astro';
 import AdminIcon from '../../components/admin/AdminIcon.astro';
 import RangePicker from '../../components/admin/RangePicker.astro';
 import { getHelpdeskEnv } from '../../lib/helpdesk/env';
-import { viewsByDayRange, topPagesRange, topCountriesRange, deviceSplitRange, referrersRange, hoursOfDayRange, viewsInRange, recentPageviews, countRecentViewers, getTimezone, viewsByChannelRange, entryPagesRange, issueFunnelRange } from '../../lib/helpdesk/db';
+import { viewsByDayRange, topPagesRange, topCountriesRange, deviceSplitRange, referrersRange, hoursOfDayRange, viewsInRange, recentPageviews, countRecentViewers, getTimezone, viewsByChannelRange, entryPagesRange, issueFunnelRange, campaignsRange, heatmapRange, channelsByDayRange, ticketHeatRange } from '../../lib/helpdesk/db';
 import { resolveFromParams, shiftDay } from '../../lib/helpdesk/ranges';
 
 const range = resolveFromParams(Astro.url.searchParams);
 
 const env = await getHelpdeskEnv();
-const [views, prevViews, prevTotal, pages, countries, devices, refs, hours, recent, viewingNow, tz, channels, entries, funnel] = await Promise.all([
+const [
+  views, prevViews, prevTotal, pages, countries, devices, refs, hours, recent, viewingNow, tz, channels, entries, funnel,
+  campaigns, heatmap, channelsByDay, ticketHeat, prevPages, prevRefs, prevHours,
+] = await Promise.all([
   viewsByDayRange(env.DB, range.start, range.end), viewsByDayRange(env.DB, range.prevStart, range.prevEnd), viewsInRange(env.DB, range.prevStart, range.prevEnd),
   topPagesRange(env.DB, range.start, range.end), topCountriesRange(env.DB, range.start, range.end),
   deviceSplitRange(env.DB, range.start, range.end), referrersRange(env.DB, range.start, range.end), hoursOfDayRange(env.DB, range.start, range.end),
   recentPageviews(env.DB, 25), countRecentViewers(env.DB, 5), getTimezone(env.DB),
   viewsByChannelRange(env.DB, range.start, range.end), entryPagesRange(env.DB, range.start, range.end), issueFunnelRange(env.DB, range.start, range.end),
+  campaignsRange(env.DB, range.start, range.end), heatmapRange(env.DB, range.start, range.end),
+  channelsByDayRange(env.DB, range.start, range.end), ticketHeatRange(env.DB, range.start, range.end),
+  topPagesRange(env.DB, range.prevStart, range.prevEnd), referrersRange(env.DB, range.prevStart, range.prevEnd),
+  hoursOfDayRange(env.DB, range.prevStart, range.prevEnd),
 ]);
 const visitTime = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: tz, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`);
 
 const total = views.reduce((s, v) => s + v.views, 0);
 const dailyAvg = Math.round(total / range.days);
-const deltaPct = prevTotal === 0 ? (total === 0 ? 0 : 100) : Math.round(((total - prevTotal) / prevTotal) * 100);
 const busiest = views.reduce((m, v) => (v.views > (m?.views ?? -1) ? v : m), null as null | { day: string; views: number });
+
+// Honest "today" delta: a plain prev-window total (all of yesterday) makes
+// "today so far" look artificially behind, so when the preset is literally
+// today, compare against yesterday's same-hours-so-far total instead.
+const currentHour = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', hourCycle: 'h23' }).format(new Date()));
+const prevHourArr = Array.from({ length: 24 }, (_, h) => prevHours.find(x => x.hour === h)?.views ?? 0);
+const honestPrevTotal = range.preset === 'today' ? prevHourArr.slice(0, currentHour + 1).reduce((a, b) => a + b, 0) : prevTotal;
+const deltaPct = honestPrevTotal === 0 ? (total === 0 ? 0 : 100) : Math.round(((total - honestPrevTotal) / honestPrevTotal) * 100);
+const deltaCaption = range.preset === 'today' ? `vs yesterday to ${label12(currentHour)}` : 'vs prev';
 
 // Gap-filled daily series for the big chart (current period)
 const days: string[] = Array.from({ length: range.days }, (_, i) => shiftDay(range.start, i));
@@ -50,21 +66,62 @@ const devTotal = Math.max(1, devices.reduce((s, d) => s + d.views, 0));
 const hourArr = Array.from({ length: 24 }, (_, h) => hours.find(x => x.hour === h)?.views ?? 0);
 const maxHour = Math.max(1, ...hourArr);
 
-// Busiest weekday: aggregate the gap-filled daily series (current period) by
-// UTC weekday-of the ET calendar day (noon UTC avoids any DST edge crossing).
-const weekdayArr = Array.from({ length: 7 }, () => 0);
-days.forEach((d, i) => {
-  const wd = new Date(d + 'T12:00:00Z').getUTCDay();
-  weekdayArr[wd] += series[i];
-});
-const maxWeekday = Math.max(1, ...weekdayArr);
-const weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
 const maxChannel = Math.max(1, ...channels.map(c => c.views));
 const channelTotal = Math.max(1, channels.reduce((s, c) => s + c.views, 0));
 const maxEntry = Math.max(1, ...entries.map(e => e.n));
 
-const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`);
+// Campaigns (?src=/utm_*) mini-bars — same shape/style as Channels above.
+const maxCampaign = Math.max(1, ...campaigns.map(c => c.n));
+
+// Channel mix by day: gap-fill channelsByDayRange onto the same `days` array
+// the main chart uses, then scale each day's stacked height to the busiest
+// day in the window. Card is hidden entirely for single-day ranges.
+const channelDayMap = new Map(channelsByDay.map(r => [r.day, r]));
+const channelDayRows = days.map(d => {
+  const r = channelDayMap.get(d) ?? { Direct: 0, Search: 0, Social: 0, Referral: 0 };
+  return { day: d, ...r, total: r.Direct + r.Search + r.Social + r.Referral };
+});
+const channelRowMax = Math.max(1, ...channelDayRows.map(r => r.total));
+
+// Movers: ▲/▼/new chips on Top pages + Referrers vs the previous window.
+const prevPagesMap = new Map(prevPages.map(p => [p.path, p.views]));
+const prevRefsMap = new Map(prevRefs.map(r => [r.host, r.views]));
+const moverChip = (curVal: number, prevVal: number | undefined): { label: string; cls: string } | null => {
+  if (prevVal === undefined) return { label: 'new', cls: 'text-brand-blue' };
+  const diff = curVal - prevVal;
+  if (diff > 0) return { label: `▲${diff}`, cls: 'text-emerald-700' };
+  if (diff < 0) return { label: `▼${Math.abs(diff)}`, cls: 'text-red-600' };
+  return null;
+};
+const pagesWithChips = pages.map(p => ({ ...p, chip: moverChip(p.views, prevPagesMap.get(p.path)) }));
+const refsWithChips = refs.map(r => ({ ...r, chip: moverChip(r.views, prevRefsMap.get(r.host)) }));
+
+// Busiest-times heatmap: fold pageviews (heatmap) and ticket issues
+// (ticketHeat) into 7×24 [weekday][hour] grids. Weekday comes from the ET
+// day string via the noon-UTC trick used elsewhere, so DST can't shift it.
+const weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const hourFull = (h: number) => (h === 0 ? '12am' : h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h - 12}pm`);
+const heatGrid: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
+const issueGrid: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
+for (const row of heatmap) {
+  const wd = new Date(row.day + 'T12:00:00Z').getUTCDay();
+  heatGrid[wd][row.hour] += row.views;
+}
+for (const row of ticketHeat) {
+  const wd = new Date(row.day + 'T12:00:00Z').getUTCDay();
+  issueGrid[wd][row.hour] += row.n;
+}
+const maxHeat = Math.max(1, ...heatGrid.flat());
+const heatRows = weekdayLabels.map((wl, wd) => ({
+  label: wl,
+  cells: Array.from({ length: 24 }, (_, h) => {
+    const v = heatGrid[wd][h];
+    const issues = issueGrid[wd][h];
+    const alpha = v === 0 ? 0 : Math.max(0.06, Math.round((v / maxHeat) * 1000) / 1000);
+    const title = `${wl} ${hourFull(h)}: ${v} view${v === 1 ? '' : 's'}${issues > 0 ? ` · ${issues} issue${issues === 1 ? '' : 's'}` : ''}`;
+    return { alpha, hasIssue: issues > 0, title };
+  }),
+}));
 ---
 <AdminLayout title="Analytics">
   <div class="flex items-center justify-between flex-wrap gap-3 mb-5">
@@ -85,7 +142,7 @@ const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? 
       <div class="flex items-center gap-1.5 text-brand-blue/60 mb-1"><AdminIcon name="chart" class="w-3.5 h-3.5" /><p class="text-[11px] uppercase tracking-wider opacity-70 font-semibold text-brand-blue-darker">Total views</p></div>
       <p class="text-3xl font-bold">{total}</p>
       <span class:list={['text-[11px] font-bold px-1.5 py-0.5 rounded-full', deltaPct > 0 ? 'bg-emerald-50 text-emerald-700' : deltaPct < 0 ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500']}>
-        {deltaPct > 0 ? '▲' : deltaPct < 0 ? '▼' : '■'} {Math.abs(deltaPct)}% vs prev
+        {deltaPct > 0 ? '▲' : deltaPct < 0 ? '▼' : '■'} {Math.abs(deltaPct)}% {deltaCaption}
       </span>
     </div>
     <div class="bg-white rounded-2xl border border-line p-4 shadow-sm">
@@ -140,9 +197,15 @@ const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? 
       <h2 class="text-sm font-bold mb-3">Top pages</h2>
       {pages.length === 0 && <p class="text-sm opacity-50">No data yet.</p>}
       <div class="space-y-2.5">
-        {pages.map(p => (
+        {pagesWithChips.map(p => (
           <div>
-            <div class="flex justify-between text-sm mb-0.5"><span class="truncate">{p.path}</span><span class="opacity-55 ml-2 shrink-0">{p.views}</span></div>
+            <div class="flex justify-between text-sm mb-0.5">
+              <span class="truncate">{p.path}</span>
+              <span class="flex items-center gap-1.5 ml-2 shrink-0">
+                {p.chip && <span class:list={['text-[10px] font-bold', p.chip.cls]}>{p.chip.label}</span>}
+                <span class="opacity-55">{p.views}</span>
+              </span>
+            </div>
             <div class="h-1.5 bg-line rounded-full overflow-hidden"><div class="h-full bg-brand-blue rounded-full" style={`width:${Math.round((p.views / maxPage) * 100)}%`}></div></div>
           </div>
         ))}
@@ -152,7 +215,15 @@ const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? 
       <h2 class="text-sm font-bold mb-3">Referrers</h2>
       {refs.length === 0 && <p class="text-sm opacity-50">No data yet.</p>}
       <div class="space-y-1.5 text-sm">
-        {refs.map(r => <div class="flex justify-between"><span class="truncate">{r.host}</span><span class="opacity-55 ml-2 shrink-0">{r.views}</span></div>)}
+        {refsWithChips.map(r => (
+          <div class="flex justify-between">
+            <span class="truncate">{r.host}</span>
+            <span class="flex items-center gap-1.5 ml-2 shrink-0">
+              {r.chip && <span class:list={['text-[10px] font-bold', r.chip.cls]}>{r.chip.label}</span>}
+              <span class="opacity-55">{r.views}</span>
+            </span>
+          </div>
+        ))}
       </div>
     </section>
   </div>
@@ -186,6 +257,47 @@ const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? 
   </div>
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <section class:list={['bg-white rounded-2xl border border-line shadow-sm p-5', range.single && 'md:col-span-2']}>
+      <h2 class="text-sm font-bold mb-3">Campaigns</h2>
+      {campaigns.length === 0 && <p class="text-sm opacity-50">No tagged visits yet — links with ?src=name land here.</p>}
+      <div class="space-y-2.5">
+        {campaigns.map(c => (
+          <div>
+            <div class="flex justify-between text-sm mb-0.5"><span class="truncate">{c.campaign}</span><span class="opacity-55 ml-2 shrink-0">{c.n}</span></div>
+            <div class="h-1.5 bg-line rounded-full overflow-hidden"><div class="h-full bg-brand-blue rounded-full" style={`width:${Math.round((c.n / maxCampaign) * 100)}%`}></div></div>
+          </div>
+        ))}
+      </div>
+    </section>
+    {!range.single && (
+      <section class="bg-white rounded-2xl border border-line shadow-sm p-5">
+        <h2 class="text-sm font-bold mb-3">Channel mix by day</h2>
+        {channelDayRows.every(r => r.total === 0) ? <p class="text-sm opacity-50">No data yet.</p> : (
+          <>
+            <div class="flex items-end gap-[2px] h-32">
+              {channelDayRows.map(r => (
+                <div class="flex-1 flex flex-col-reverse rounded-t overflow-hidden" style={`height:${Math.max(2, Math.round((r.total / channelRowMax) * 100))}%`} title={`${r.day.slice(5)}: ${r.total} view${r.total === 1 ? '' : 's'} (Direct ${r.Direct}, Search ${r.Search}, Social ${r.Social}, Referral ${r.Referral})`}>
+                  <div style={`flex:${r.Direct} 1 0;background:#0F2A4A`}></div>
+                  <div style={`flex:${r.Search} 1 0;background:#2f6f9f`}></div>
+                  <div style={`flex:${r.Social} 1 0;background:#e2a33a`}></div>
+                  <div style={`flex:${r.Referral} 1 0;background:#9ca3af`}></div>
+                </div>
+              ))}
+            </div>
+            <div class="flex justify-between text-[10px] opacity-45 mt-1"><span>{range.start.slice(5)}</span><span>{range.end.slice(5)}</span></div>
+            <div class="flex items-center flex-wrap gap-3 mt-3 text-[10px] opacity-60">
+              <span class="flex items-center gap-1"><span class="inline-block w-2 h-2 rounded-sm" style="background:#0F2A4A"></span>Direct</span>
+              <span class="flex items-center gap-1"><span class="inline-block w-2 h-2 rounded-sm" style="background:#2f6f9f"></span>Search</span>
+              <span class="flex items-center gap-1"><span class="inline-block w-2 h-2 rounded-sm" style="background:#e2a33a"></span>Social</span>
+              <span class="flex items-center gap-1"><span class="inline-block w-2 h-2 rounded-sm" style="background:#9ca3af"></span>Referral</span>
+            </div>
+          </>
+        )}
+      </section>
+    )}
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
     <section class="bg-white rounded-2xl border border-line shadow-sm p-5">
       <h2 class="text-sm font-bold mb-3">Countries</h2>
       {countries.length === 0 && <p class="text-sm opacity-50">No data yet.</p>}
@@ -212,22 +324,23 @@ const label12 = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? 
   </section>
 
   <section class="bg-white rounded-2xl border border-line shadow-sm p-5 mb-6">
-    <h2 class="text-sm font-bold mb-3">Busiest hours <span class="font-normal opacity-45">(Eastern)</span></h2>
-    <div class="flex items-end gap-[3px] h-24">
-      {hourArr.map((v, h) => (
-        <div class="flex-1 bg-brand-blue/70 hover:bg-brand-red rounded-t" style={`height:${Math.max(2, Math.round((v / maxHour) * 100))}%`} title={`${label12(h)}: ${v}`}></div>
-      ))}
-    </div>
-    <div class="flex justify-between text-[10px] opacity-45 mt-1"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>11p</span></div>
-
-    <h2 class="text-sm font-bold mb-3 mt-5">Busiest weekday</h2>
-    <div class="flex items-end gap-[3px] h-16">
-      {weekdayArr.map((v, wd) => (
-        <div class="flex-1 bg-brand-blue/70 hover:bg-brand-red rounded-t" style={`height:${Math.max(2, Math.round((v / maxWeekday) * 100))}%`} title={`${weekdayLabels[wd]}: ${v}`}></div>
-      ))}
-    </div>
-    <div class="flex justify-between text-[10px] opacity-45 mt-1">
-      {weekdayLabels.map(l => <span>{l}</span>)}
+    <h2 class="text-sm font-bold mb-3">Busiest times <span class="font-normal opacity-45">(Eastern)</span></h2>
+    <div class="overflow-x-auto">
+      <div class="min-w-[560px]">
+        <div class="grid gap-[2px]" style="grid-template-columns: 34px repeat(24, minmax(8px, 1fr))">
+          {heatRows.map(row => (
+            <>
+              <div class="text-[10px] opacity-45 flex items-center">{row.label}</div>
+              {row.cells.map(c => (
+                <div class="h-5 rounded-[2px]" style={`background:rgba(47,111,159,${c.alpha})${c.hasIssue ? ';box-shadow:inset 0 0 0 2px #e2a33a' : ''}`} title={c.title}></div>
+              ))}
+            </>
+          ))}
+        </div>
+        <div class="flex justify-between text-[10px] opacity-45 mt-1 pl-[34px]">
+          <span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>11p</span>
+        </div>
+      </div>
     </div>
   </section>
 
