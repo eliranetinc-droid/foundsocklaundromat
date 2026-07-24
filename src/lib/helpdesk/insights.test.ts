@@ -116,6 +116,21 @@ describe('computeInsights — pace rule, at/after 18:00 (vs median same-weekday 
     });
     expect(result).toEqual([]);
   });
+
+  test('suppressed when today views are under 5, even against a strong typical median', () => {
+    const result = computeInsights({
+      todayViews: 4,
+      currentHour: 19,
+      weekday: 3,
+      yesterdayByHour: Array(24).fill(0),
+      sameWeekdayTotals: [50, 60, 70], // median = 60 >= 5, ratio extreme low
+      weekTickets: 0,
+      priorWeeksTickets: [],
+      medianReplyHours: null,
+      prevMedianReplyHours: null,
+    });
+    expect(result).toEqual([]);
+  });
 });
 
 describe('computeInsights — tickets rule (issue spikes)', () => {
