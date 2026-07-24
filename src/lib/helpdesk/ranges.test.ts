@@ -40,8 +40,8 @@ describe('resolveRange presets (today = Wed 2026-07-15)', () => {
     expect(resolveRange('this-month', T)).toMatchObject({ start: '2026-07-01', end: T, days: 15, prevStart: '2026-06-16', prevEnd: '2026-06-30' });
     expect(resolveRange('last-month', T)).toMatchObject({ start: '2026-06-01', end: '2026-06-30', days: 30 });
   });
-  test('unknown preset falls back to last-7', () => {
-    expect(resolveRange('bogus', T).preset).toBe('last-7');
+  test('unknown preset falls back to today', () => {
+    expect(resolveRange('bogus', T).preset).toBe('today');
   });
   test('labels are human', () => {
     expect(resolveRange('today', T).label).toBe('Today');
@@ -57,9 +57,9 @@ describe('custom + params', () => {
     expect(resolveRange('custom', T, { from: '2026-07-10', to: '2027-01-01' }).end).toBe(T);
     expect(resolveRange('custom', T, { from: '2026-07-05', to: '2026-07-03' }).start).toBe('2026-07-03');
   });
-  test('custom with invalid dates falls back to last-7', () => {
-    expect(resolveRange('custom', T, { from: 'nope', to: '2026-07-05' }).preset).toBe('last-7');
-    expect(resolveRange('custom', T).preset).toBe('last-7');
+  test('custom with invalid dates falls back to today', () => {
+    expect(resolveRange('custom', T, { from: 'nope', to: '2026-07-05' }).preset).toBe('today');
+    expect(resolveRange('custom', T).preset).toBe('today');
   });
   test('custom label shows the dates', () => {
     expect(resolveRange('custom', T, { from: '2026-07-03', to: '2026-07-05' }).label).toBe('Jul 3 – Jul 5');
@@ -70,6 +70,11 @@ describe('custom + params', () => {
     expect(resolveFromParams(params('period=7'), T).preset).toBe('last-7');   // legacy pills
     expect(resolveFromParams(params('period=30'), T).preset).toBe('last-30');
     expect(resolveFromParams(params('period=today'), T).preset).toBe('today');
-    expect(resolveFromParams(params(''), T).preset).toBe('last-7');           // default
+    expect(resolveFromParams(params(''), T).preset).toBe('today');           // default
+  });
+  test('today is the default and fallback everywhere', () => {
+    expect(resolveFromParams(new URLSearchParams(''), T).preset).toBe('today');
+    expect(resolveRange('nonsense', T).preset).toBe('today');
+    expect(resolveRange('custom', T).preset).toBe('today');
   });
 });

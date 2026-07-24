@@ -54,20 +54,20 @@ export function resolveRange(preset: string, today: string, custom?: { from?: st
     case 'last-month': { const end = shiftDay(today.slice(0, 7) + '-01', -1); return windows(preset, end.slice(0, 7) + '-01', end, 'Last month'); }
     case 'custom': {
       const from = custom?.from, to = custom?.to;
-      if (!from || !to || !DAY_RE.test(from) || !DAY_RE.test(to)) return resolveRange('last-7', today);
+      if (!from || !to || !DAY_RE.test(from) || !DAY_RE.test(to)) return resolveRange('today', today);
       let [s, e] = from <= to ? [from, to] : [to, from];
       if (e > today) e = today;
       if (s > today) s = today;
       return windows('custom', s, e, `${fmtShort(s)} – ${fmtShort(e)}`);
     }
-    default: return resolveRange('last-7', today);
+    default: return resolveRange('today', today);
   }
 }
 
 /** Read ?period=&from=&to= (mapping the legacy pill values 7/30/90). */
 export function resolveFromParams(params: URLSearchParams, today = etDay(new Date())): DateRange {
   const legacy: Record<string, string> = { '7': 'last-7', '30': 'last-30', '90': 'last-30' };
-  const raw = params.get('period') ?? 'last-7';
+  const raw = params.get('period') ?? 'today';
   const preset = legacy[raw] ?? raw;
   return resolveRange(preset, today, { from: params.get('from') ?? undefined, to: params.get('to') ?? undefined });
 }
