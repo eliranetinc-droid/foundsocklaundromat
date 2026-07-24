@@ -256,6 +256,43 @@ export async function ticketsPerDayRange(db: D1Database, startDay: string, endDa
   return [...counts.entries()].map(([day, n]) => ({ day, n })).sort((a, b) => a.day.localeCompare(b.day));
 }
 
+/**
+ * Tickets folded into ET {day, hour} buckets within [startDay, endDay]
+ * inclusive — the ticket side of the busiest-times heatmap. Same ±1-day UTC
+ * guard band as ticketsPerDayRange, keyed on day+hour instead of day alone;
+ * etDayHour always resolves an hour (0–23), so there's no null-hour case to skip.
+ */
+export async function ticketHeatRange(db: D1Database, startDay: string, endDay: string): Promise<{ day: string; hour: number; n: number }[]> {
+  const guardStart = new Date(startDay + 'T00:00:00.000Z').getTime() - 86400000;
+  const guardEnd = new Date(endDay + 'T00:00:00.000Z').getTime() + 2 * 86400000;
+  const { results } = await db.prepare(
+    `SELECT created_at FROM tickets WHERE created_at >= ? AND created_at < ?`
+  ).bind(new Date(guardStart).toISOString(), new Date(guardEnd).toISOString()).all<{ created_at: string }>();
+  const counts = new Map<string, number>();
+  for (const r of results) {
+    const { day, hour } = etDayHour(new Date(r.created_at));
+    if (day >= startDay && day <= endDay) {
+      const key = `${day}|${hour}`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .map(([key, n]) => { const [day, hourStr] = key.split('|'); return { day, hour: Number(hourStr), n }; })
+    .sort((a, b) => a.day.localeCompare(b.day) || a.hour - b.hour);
+}
+
+/**
+ * Median hours to first reply, across tickets created in the last `days`
+ * days (rolling window from `Date.now()`, unbounded at the top).
+ *
+ * NOT a thin wrapper over medianFirstReplyHoursRange: this filters entirely
+ * in SQL via a rolling `days * 86400000`ms cutoff (no upper bound, no ET-day
+ * alignment on the start), whereas the Range variant guard-bands the fetch
+ * and filters to whole ET calendar days in JS so both ends can be pinned
+ * exactly. Same boundary mismatch as ticketsPerDay vs ticketsPerDayRange —
+ * wrapping would shift which tickets' replies count near the edges, so this
+ * keeps its original body (and the pinned db.dashboard.test.ts fixture) untouched.
+ */
 export async function medianFirstReplyHours(db: D1Database, days: number): Promise<number | null> {
   const since = new Date(Date.now() - days * 86400000).toISOString();
   const { results } = await db.prepare(
@@ -271,6 +308,36 @@ export async function medianFirstReplyHours(db: D1Database, days: number): Promi
   const hours = results
     .map(r => (Date.parse(r.fout) - Date.parse(r.fin)) / 3_600_000)
     .sort((a, b) => a - b);
+  const mid = Math.floor(hours.length / 2);
+  const med = hours.length % 2 ? hours[mid] : (hours[mid - 1] + hours[mid]) / 2;
+  return Math.round(med * 10) / 10;
+}
+
+/**
+ * Median hours to first reply for tickets created within [startDay, endDay]
+ * (ET calendar days), inclusive. Mirrors medianFirstReplyHours's CTE/median
+ * logic exactly, but tickets have no ET-day column, so ticket creation is
+ * fetched via a ±1-day UTC guard band (same arithmetic as ticketsPerDayRange)
+ * and filtered to the exact window by etDay(created_at) in JS. Same 1-decimal
+ * rounding and null-on-empty semantics as the original.
+ */
+export async function medianFirstReplyHoursRange(db: D1Database, startDay: string, endDay: string): Promise<number | null> {
+  const guardStart = new Date(startDay + 'T00:00:00.000Z').getTime() - 86400000;
+  const guardEnd = new Date(endDay + 'T00:00:00.000Z').getTime() + 2 * 86400000;
+  const { results } = await db.prepare(
+    `WITH firsts AS (
+       SELECT t.id, t.created_at,
+         (SELECT MIN(created_at) FROM messages m WHERE m.ticket_id=t.id AND m.direction='inbound')  AS fin,
+         (SELECT MIN(created_at) FROM messages m WHERE m.ticket_id=t.id AND m.direction='outbound') AS fout
+       FROM tickets t WHERE t.created_at >= ? AND t.created_at < ?
+     )
+     SELECT created_at, fin, fout FROM firsts WHERE fin IS NOT NULL AND fout IS NOT NULL AND fout > fin`
+  ).bind(new Date(guardStart).toISOString(), new Date(guardEnd).toISOString()).all<{ created_at: string; fin: string; fout: string }>();
+  const hours = results
+    .filter(r => { const d = etDay(new Date(r.created_at)); return d >= startDay && d <= endDay; })
+    .map(r => (Date.parse(r.fout) - Date.parse(r.fin)) / 3_600_000)
+    .sort((a, b) => a - b);
+  if (hours.length === 0) return null;
   const mid = Math.floor(hours.length / 2);
   const med = hours.length % 2 ? hours[mid] : (hours[mid - 1] + hours[mid]) / 2;
   return Math.round(med * 10) / 10;
@@ -433,6 +500,25 @@ export async function viewsByChannelRange(db: D1Database, startDay: string, endD
 export const viewsByChannel = (db: D1Database, days: number) =>
   viewsByChannelRange(db, sinceDay(days), etDay(new Date()));
 
+/** Daily channel mix within [startDay, endDay]: per-day view counts folded
+ * via channelOf() into the four channel buckets (day-ascending), for the
+ * channel-mix-by-day stacked chart. */
+export async function channelsByDayRange(db: D1Database, startDay: string, endDay: string) {
+  const { results } = await db.prepare(
+    `SELECT day, referrer_host, COUNT(*) AS views FROM pageviews WHERE day >= ? AND day <= ? GROUP BY day, referrer_host`
+  ).bind(startDay, endDay).all<{ day: string; referrer_host: string | null; views: number }>();
+  const byDay = new Map<string, { Direct: number; Search: number; Social: number; Referral: number }>();
+  for (const r of results) {
+    const chan = channelOf(r.referrer_host);
+    const row = byDay.get(r.day) ?? { Direct: 0, Search: 0, Social: 0, Referral: 0 };
+    row[chan] += r.views;
+    byDay.set(r.day, row);
+  }
+  return [...byDay.entries()]
+    .map(([day, chans]) => ({ day, ...chans }))
+    .sort((a, b) => a.day.localeCompare(b.day));
+}
+
 /** Arrivals from external sites, by page (cookie-free cousin of "landing pages"). */
 export async function entryPagesRange(db: D1Database, startDay: string, endDay: string, limit = 8) {
   const { results } = await db.prepare(
@@ -487,3 +573,18 @@ export async function issueFunnelRange(db: D1Database, startDay: string, endDay:
   }).length;
   return { views, tickets, rate: views > 0 ? Math.round((tickets / views) * 100) : null };
 }
+
+/** Named campaigns (?src= / utm_*) ranked by views within [startDay, endDay]. */
+export const campaignsRange = (db: D1Database, startDay: string, endDay: string, limit = 8) =>
+  db.prepare(
+    `SELECT campaign, COUNT(*) AS n FROM pageviews
+     WHERE day >= ? AND day <= ? AND campaign IS NOT NULL AND campaign != ''
+     GROUP BY campaign ORDER BY n DESC LIMIT ?`
+  ).bind(startDay, endDay, limit).all<{ campaign: string; n: number }>().then(r => r.results);
+
+/** Week×hour busiest-times heatmap (pageview side) within [startDay, endDay]. */
+export const heatmapRange = (db: D1Database, startDay: string, endDay: string) =>
+  db.prepare(
+    `SELECT day, hour, COUNT(*) AS views FROM pageviews
+     WHERE day >= ? AND day <= ? AND hour IS NOT NULL GROUP BY day, hour`
+  ).bind(startDay, endDay).all<{ day: string; hour: number; views: number }>().then(r => r.results);
