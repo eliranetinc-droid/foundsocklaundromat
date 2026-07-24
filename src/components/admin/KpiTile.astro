@@ -5,8 +5,9 @@ export interface Props {
   label: string; value: string | number; spark?: number[]; color?: string;
   icon?: string;
   delta?: { current: number; prev: number; lowerIsBetter?: boolean } | null;
+  deltaCaption?: string;
 }
-const { label, value, spark = [], color = '#2f6f9f', icon, delta = null } = Astro.props;
+const { label, value, spark = [], color = '#2f6f9f', icon, delta = null, deltaCaption } = Astro.props;
 let chip: { text: string; cls: string } | null = null;
 if (delta) {
   const { current, prev, lowerIsBetter } = delta;
@@ -25,7 +26,12 @@ if (delta) {
       {icon && <span class="text-brand-blue/60 shrink-0"><AdminIcon name={icon} class="w-3.5 h-3.5" /></span>}
       <p class="text-[11px] uppercase tracking-wider opacity-55 font-semibold truncate">{label}</p>
     </div>
-    {chip && <span class={`text-[11px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${chip.cls}`}>{chip.text}</span>}
+    {chip && (
+      <div class="flex flex-col items-end shrink-0">
+        <span class={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${chip.cls}`}>{chip.text}</span>
+        {deltaCaption && <span class="text-[9px] opacity-45 leading-tight">{deltaCaption}</span>}
+      </div>
+    )}
   </div>
   <p class="text-3xl font-bold mt-1 mb-2">{value}</p>
   {spark.length > 0 && <Sparkline data={spark} color={color} />}

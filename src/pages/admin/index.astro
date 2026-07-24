@@ -7,18 +7,26 @@ import RangePicker from '../../components/admin/RangePicker.astro';
 import { getHelpdeskEnv } from '../../lib/helpdesk/env';
 import {
   countOpenTickets, recentMessages, topPagesRange,
-  ticketsPerDayRange, medianFirstReplyHours, needsAttention, countRecentViewers, getTimezone,
+  ticketsPerDayRange, medianFirstReplyHours, medianFirstReplyHoursRange, needsAttention, countRecentViewers, getTimezone,
   ticketsByMachine, aiDraftStats, resolutionStats, sourceSplit, hoursOfDayRange, viewsInRange, viewsByDayRange,
 } from '../../lib/helpdesk/db';
 import { fmtDuration } from '../../lib/helpdesk/fmt';
 import { resolveFromParams, shiftDay } from '../../lib/helpdesk/ranges';
+import { etDay } from '../../lib/helpdesk/pv';
+import { computeInsights } from '../../lib/helpdesk/insights';
 
 const range = resolveFromParams(Astro.url.searchParams);
+
+// The insight strip + honest-today comparison always describe TODAY in ET,
+// independent of whatever range/preset is currently selected for browsing.
+const todayEt = etDay(new Date());
+const yesterdayEt = shiftDay(todayEt, -1);
 
 const env = await getHelpdeskEnv();
 const [
   openCount, recent, pages, medHrs, attention, viewingNow, tz, machines, ai, res, sources,
   visitorsVal, visitorsPrev, ticketsCurRows, ticketsPrevRows, sparkRows,
+  yesterdayHourRows, views28Rows, tickets35Rows, medianReplyHours, prevMedianReplyHours, todayViewsRaw,
 ] = await Promise.all([
   countOpenTickets(env.DB),
   recentMessages(env.DB, 8),
@@ -36,6 +44,12 @@ const [
   ticketsPerDayRange(env.DB, range.start, range.end),
   ticketsPerDayRange(env.DB, range.prevStart, range.prevEnd),
   range.single ? hoursOfDayRange(env.DB, range.start, range.end) : viewsByDayRange(env.DB, range.start, range.end),
+  hoursOfDayRange(env.DB, yesterdayEt, yesterdayEt),
+  viewsByDayRange(env.DB, shiftDay(todayEt, -27), todayEt),
+  ticketsPerDayRange(env.DB, shiftDay(todayEt, -34), todayEt),
+  medianFirstReplyHoursRange(env.DB, shiftDay(todayEt, -29), todayEt),
+  medianFirstReplyHoursRange(env.DB, shiftDay(todayEt, -59), shiftDay(todayEt, -30)),
+  viewsInRange(env.DB, todayEt, todayEt),
 ]);
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: tz, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -70,14 +84,66 @@ if (range.single) {
   const viewsMap = new Map((sparkRows as { day: string; views: number }[]).map(r => [r.day, r.views]));
   visitorsSpark = curDays.map(d => viewsMap.get(d) ?? 0);
 }
+
+// ---- Insight strip + honest-today comparison ----
+// ET calendar-day bounded off todayEt/yesterdayEt (declared above), deliberately
+// independent of the selected `range` — insights always describe TODAY no
+// matter what window the owner is currently browsing.
+const currentHour = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', hourCycle: 'h23' }).format(new Date()));
+const weekday = new Date(todayEt + 'T12:00:00Z').getUTCDay(); // noon-UTC trick — never local getDay()
+const yesterdayByHour = Array.from({ length: 24 }, (_, h) => yesterdayHourRows.find(x => x.hour === h)?.views ?? 0);
+const todayViews = range.preset === 'today' ? visitorsVal : todayViewsRaw;
+
+// Same-weekday totals: gap-fill the 28-day series, keep days matching today's
+// ET weekday (excluding today itself), most recent first, capped at 4.
+const last28Map = new Map(views28Rows.map(r => [r.day, r.views]));
+const sameWeekdayTotals = Array.from({ length: 28 }, (_, i) => shiftDay(todayEt, i - 27))
+  .filter(d => d !== todayEt && new Date(d + 'T12:00:00Z').getUTCDay() === weekday)
+  .sort((a, b) => b.localeCompare(a))
+  .slice(0, 4)
+  .map(d => last28Map.get(d) ?? 0);
+
+// This-week / prior-4-weeks ticket totals, folded from the single 35-day fetch.
+const ticketsMap35 = new Map(tickets35Rows.map(r => [r.day, r.n]));
+const ticketsSum = (fromOffset: number, toOffset: number) => {
+  let s = 0;
+  for (let i = fromOffset; i <= toOffset; i++) s += ticketsMap35.get(shiftDay(todayEt, i)) ?? 0;
+  return s;
+};
+const weekTickets = ticketsSum(-6, 0);
+const priorWeeksTickets = [ticketsSum(-13, -7), ticketsSum(-20, -14), ticketsSum(-27, -21), ticketsSum(-34, -28)];
+
+const insights = computeInsights({
+  todayViews, currentHour, weekday, yesterdayByHour, sameWeekdayTotals,
+  weekTickets, priorWeeksTickets, medianReplyHours, prevMedianReplyHours,
+});
+
+// Honest today delta: "today so far" vs all of yesterday makes a normal
+// morning look like a crash, so when the selected range IS today, compare
+// against yesterday's same-hours-so-far instead (mirrors analytics.astro/S5).
+const visitorsPrevHonest = range.preset === 'today'
+  ? yesterdayByHour.slice(0, currentHour + 1).reduce((a, b) => a + b, 0)
+  : visitorsPrev;
+const visitorsDeltaCaption = range.preset === 'today' ? `vs yesterday to ${label12(currentHour)}` : undefined;
 ---
 <AdminLayout title="Dashboard">
   <div class="flex items-center justify-end mb-3">
     <RangePicker range={range} action="/admin/" />
   </div>
 
+  {insights.length > 0 && (
+    <div class="flex flex-col sm:flex-row gap-2 mb-4">
+      {insights.map(i => (
+        <div class="bg-white border border-line rounded-2xl px-4 py-2.5 text-sm flex items-center gap-2">
+          <span>{i.emoji}</span>
+          <span>{i.text}</span>
+        </div>
+      ))}
+    </div>
+  )}
+
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-    <KpiTile label="Visitors" value={visitorsVal} spark={visitorsSpark} color="#2f6f9f" icon="eye" delta={{ current: visitorsVal, prev: visitorsPrev }} />
+    <KpiTile label="Visitors" value={visitorsVal} spark={visitorsSpark} color="#2f6f9f" icon="eye" delta={{ current: visitorsVal, prev: visitorsPrevHonest }} deltaCaption={visitorsDeltaCaption} />
     <KpiTile label="Open" value={openCount} spark={ticketsSpark} color="#16a34a" icon="inbox" />
     <KpiTile label={`New · ${range.label}`} value={ticketsVal} spark={ticketsSpark} color="#16a34a" icon="message" delta={{ current: ticketsVal, prev: ticketsPrev }} />
     <KpiTile label="Avg reply" value={fmtDuration(medHrs)} icon="clock" />
