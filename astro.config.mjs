@@ -8,6 +8,13 @@ export default defineConfig({
   site: 'https://www.foundsocklaundromat.com',
   trailingSlash: 'always',
 
+  // The contact page invited vague machine reports (and spam) — everything
+  // now funnels through the structured /report-issue/ form. 301 keeps old
+  // search results and bookmarks working.
+  redirects: {
+    '/contact/': { status: 301, destination: '/report-issue/' },
+  },
+
   // Pre-bake all image variants at build time via Sharp (instead of the
   // Cloudflare runtime `/_image/` endpoint). Ships static AVIF/WebP files
   // — faster + cheaper than runtime transforms.
@@ -22,7 +29,8 @@ export default defineConfig({
       lastmod: new Date(),
       // Admin pages are noindex + robots-disallowed; advertising them in the
       // sitemap would trigger "indexed though blocked" warnings in GSC.
-      filter: (page) => !page.includes('/admin'),
+      // /contact/ is a 301 to /report-issue/ — keep it out of the sitemap too.
+      filter: (page) => !page.includes('/admin') && !page.includes('/contact'),
     }),
   ],
 
