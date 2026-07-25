@@ -74,14 +74,10 @@ test('blog post page renders', async ({ page }) => {
   expect(ld.some(s => JSON.parse(s)['@type'] === 'Article')).toBe(true);
 });
 
-test('contact form posts to API', async ({ page }) => {
-  await page.route('/api/submit-ticket', route => {
-    route.fulfill({ status: 200, body: JSON.stringify({ ok: true, ticketId: 1 }) });
-  });
-  await page.goto('/contact');
-  await page.fill('input[name="name"]', 'Test User');
-  await page.fill('input[name="email"]', 'test@example.com');
-  await page.fill('textarea[name="message"]', 'Test message');
-  await page.click('button[type="submit"]');
-  await expect(page.locator('[data-status]')).toContainText(/got it/i);
+// The contact page was removed (spam + vague machine reports); /contact/ now
+// permanently redirects to the structured report-issue form.
+test('old contact page redirects to report-issue', async ({ page }) => {
+  const response = await page.goto('/contact/');
+  expect(response?.status()).toBe(200); // final response after the 301
+  expect(page.url()).toContain('/report-issue/');
 });

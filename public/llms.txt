@@ -46,7 +46,6 @@ The Found Sock Laundromat serves the following Boston neighborhoods (foot/transi
 - [FAQ](https://www.foundsocklaundromat.com/faq/)
 - [Gallery](https://www.foundsocklaundromat.com/gallery/)
 - [Blog](https://www.foundsocklaundromat.com/blog/)
-- [Contact](https://www.foundsocklaundromat.com/contact/)
 - [Report an issue](https://www.foundsocklaundromat.com/report-issue/)
 
 ## Service area landing pages
